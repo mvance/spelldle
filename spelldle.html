@@ -277,6 +277,64 @@
             color: var(--dark-text);
         }
 
+        /* Clue phase input styling */
+        .input-row-clue {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .letter-input {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #000;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 18px;
+            text-transform: lowercase;
+            box-sizing: border-box;
+            text-align: center;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            font-family: inherit;
+        }
+
+        .letter-input:focus {
+            outline: none;
+            border-color: var(--green);
+        }
+
+        .clue-submit-button {
+            background-color: var(--green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        .clue-submit-button:hover {
+            background-color: #5a9a54;
+        }
+
+        .clue-submit-button:active {
+            background-color: #4a8a44;
+        }
+
+        .clue-submit-button:disabled {
+            background-color: #4a4a4a;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             body {
@@ -744,7 +802,162 @@
             // Add the feedback row to the container
             container.appendChild(feedbackRow);
             
+            // Add input row for next guess
+            addInputRow(container);
+            
             console.log(`Displayed feedback for guess: "${guess}" vs target: "${gameState.currentWord}"`);
+        }
+
+        // Add input row with individual letter boxes
+        function addInputRow(container) {
+            const inputRowContainer = document.createElement('div');
+            inputRowContainer.className = 'input-row-container';
+            
+            // Create input row
+            const inputRow = document.createElement('div');
+            inputRow.className = 'input-row-clue';
+            
+            // Create individual input fields for each letter in target word
+            for (let i = 0; i < gameState.currentWord.length; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'letter-input';
+                input.maxLength = 1;
+                input.dataset.index = i;
+                input.addEventListener('input', handleLetterInput);
+                input.addEventListener('keydown', handleLetterKeydown);
+                inputRow.appendChild(input);
+            }
+            
+            inputRowContainer.appendChild(inputRow);
+            
+            // Create submit button
+            const submitButton = document.createElement('button');
+            submitButton.className = 'clue-submit-button';
+            submitButton.textContent = 'Submit';
+            submitButton.onclick = submitClueGuess;
+            inputRowContainer.appendChild(submitButton);
+            
+            container.appendChild(inputRowContainer);
+            
+            // Auto-focus first input box
+            const firstInput = inputRow.querySelector('.letter-input');
+            if (firstInput) {
+                setTimeout(() => firstInput.focus(), 100);
+            }
+        }
+
+        // Handle input in letter boxes
+        function handleLetterInput(event) {
+            const input = event.target;
+            const value = input.value;
+            
+            // Convert to lowercase unless Caps Lock or Shift is engaged
+            if (value && !event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift'))) {
+                if (value === value.toUpperCase() && value !== value.toLowerCase()) {
+                    input.value = value.toLowerCase();
+                }
+            }
+            
+            // Move to next box if letter was entered
+            if (value) {
+                const currentIndex = parseInt(input.dataset.index);
+                const nextInput = input.parentElement.querySelector(`[data-index="${currentIndex + 1}"]`);
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        }
+
+        // Handle keydown events in letter boxes
+        function handleLetterKeydown(event) {
+            const input = event.target;
+            const currentIndex = parseInt(input.dataset.index);
+            
+            if (event.key === 'Backspace') {
+                // If current box is empty, move to previous box
+                if (!input.value && currentIndex > 0) {
+                    const prevInput = input.parentElement.querySelector(`[data-index="${currentIndex - 1}"]`);
+                    if (prevInput) {
+                        prevInput.focus();
+                    }
+                }
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                submitClueGuess();
+            } else if (event.key === 'ArrowLeft' && currentIndex > 0) {
+                const prevInput = input.parentElement.querySelector(`[data-index="${currentIndex - 1}"]`);
+                if (prevInput) {
+                    prevInput.focus();
+                }
+            } else if (event.key === 'ArrowRight' && currentIndex < gameState.currentWord.length - 1) {
+                const nextInput = input.parentElement.querySelector(`[data-index="${currentIndex + 1}"]`);
+                if (nextInput) {
+                    nextInput.focus();
+                }
+            }
+        }
+
+        // Submit clue phase guess
+        function submitClueGuess() {
+            const container = document.getElementById('cluePhaseContainer');
+            const lastInputRow = container.querySelector('.input-row-container:last-child .input-row-clue');
+            const inputs = lastInputRow.querySelectorAll('.letter-input');
+            
+            // Collect letters from input boxes
+            let guess = '';
+            let allFilled = true;
+            
+            inputs.forEach(input => {
+                const value = input.value.trim();
+                if (!value) {
+                    allFilled = false;
+                }
+                guess += value;
+            });
+            
+            // Prevent submission if not all boxes are filled
+            if (!allFilled) {
+                // Find first empty input and focus it
+                const firstEmpty = Array.from(inputs).find(input => !input.value.trim());
+                if (firstEmpty) {
+                    firstEmpty.focus();
+                }
+                return;
+            }
+            
+            console.log(`Clue phase guess: "${guess}" for target: "${gameState.currentWord}"`);
+            
+            // Check if guess is correct
+            if (guess === gameState.currentWord) {
+                // Correct guess - play "Correct!" and advance to next word
+                handleCorrectGuess();
+            } else {
+                // Incorrect guess - add new feedback row and input row
+                handleIncorrectClueGuess(guess);
+            }
+        }
+
+        // Handle incorrect guess in clue phase
+        function handleIncorrectClueGuess(guess) {
+            console.log(`Incorrect clue guess: "${guess}"`);
+            
+            const container = document.getElementById('cluePhaseContainer');
+            
+            // Evaluate the guess using SpellingEvaluator
+            const evaluation = SpellingEvaluator.evaluate(guess, gameState.currentWord);
+            console.log('Clue evaluation result:', evaluation);
+            
+            // Create new feedback row
+            const feedbackRow = document.createElement('div');
+            feedbackRow.className = 'feedback-row';
+            feedbackRow.innerHTML = renderFeedbackBoxes(guess, gameState.currentWord, evaluation);
+            
+            // Add the feedback row to the container
+            container.appendChild(feedbackRow);
+            
+            // Add new input row for next attempt
+            addInputRow(container);
         }
 
         // Hide the clue phase
@@ -780,7 +993,8 @@
                 gameState.currentSentence = wordData.sentence;
                 updateProgressCounter();
                 
-                // Show initial guess input for new word
+                // Hide clue phase and show initial guess input for new word
+                hideCluePhase();
                 showInitialGuessInput();
                 
                 // Auto-play the new word
