@@ -823,6 +823,7 @@
                 input.type = 'text';
                 input.className = 'letter-input';
                 input.maxLength = 1;
+                input.value = ''; // Ensure input starts empty
                 input.dataset.index = i;
                 input.addEventListener('input', handleLetterInput);
                 input.addEventListener('keydown', handleLetterKeydown);
@@ -840,22 +841,32 @@
             
             container.appendChild(inputRowContainer);
             
-            // Auto-focus first input box
+            // Auto-focus first input box after a brief delay
             const firstInput = inputRow.querySelector('.letter-input');
             if (firstInput) {
-                setTimeout(() => firstInput.focus(), 100);
+                setTimeout(() => {
+                    firstInput.focus();
+                    firstInput.select(); // Ensure any existing content is selected
+                }, 150);
             }
         }
 
         // Handle input in letter boxes
         function handleLetterInput(event) {
             const input = event.target;
-            const value = input.value;
+            let value = input.value;
+            
+            // Only keep the last character if multiple were entered
+            if (value.length > 1) {
+                value = value.slice(-1);
+                input.value = value;
+            }
             
             // Convert to lowercase unless Caps Lock or Shift is engaged
-            if (value && !event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift'))) {
+            if (value && (!event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift')))) {
                 if (value === value.toUpperCase() && value !== value.toLowerCase()) {
                     input.value = value.toLowerCase();
+                    value = value.toLowerCase();
                 }
             }
             
@@ -865,6 +876,7 @@
                 const nextInput = input.parentElement.querySelector(`[data-index="${currentIndex + 1}"]`);
                 if (nextInput) {
                     nextInput.focus();
+                    nextInput.select(); // Select any existing content
                 }
             }
         }
@@ -875,11 +887,12 @@
             const currentIndex = parseInt(input.dataset.index);
             
             if (event.key === 'Backspace') {
-                // If current box is empty, move to previous box
+                // If current box is empty, move to previous box and clear it
                 if (!input.value && currentIndex > 0) {
                     const prevInput = input.parentElement.querySelector(`[data-index="${currentIndex - 1}"]`);
                     if (prevInput) {
                         prevInput.focus();
+                        prevInput.select(); // Select content for easy replacement
                     }
                 }
             } else if (event.key === 'Enter') {
@@ -889,11 +902,13 @@
                 const prevInput = input.parentElement.querySelector(`[data-index="${currentIndex - 1}"]`);
                 if (prevInput) {
                     prevInput.focus();
+                    prevInput.select();
                 }
             } else if (event.key === 'ArrowRight' && currentIndex < gameState.currentWord.length - 1) {
                 const nextInput = input.parentElement.querySelector(`[data-index="${currentIndex + 1}"]`);
                 if (nextInput) {
                     nextInput.focus();
+                    nextInput.select();
                 }
             }
         }
@@ -944,6 +959,12 @@
             
             const container = document.getElementById('cluePhaseContainer');
             
+            // Remove the current input row before adding feedback
+            const currentInputContainer = container.querySelector('.input-row-container:last-child');
+            if (currentInputContainer) {
+                currentInputContainer.remove();
+            }
+            
             // Evaluate the guess using SpellingEvaluator
             const evaluation = SpellingEvaluator.evaluate(guess, gameState.currentWord);
             console.log('Clue evaluation result:', evaluation);
@@ -956,7 +977,7 @@
             // Add the feedback row to the container
             container.appendChild(feedbackRow);
             
-            // Add new input row for next attempt
+            // Add new input row for next attempt with cleared boxes
             addInputRow(container);
         }
 
