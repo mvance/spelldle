@@ -220,6 +220,63 @@
             background-color: #4a8a44;
         }
 
+        /* Clue phase feedback styling */
+        .clue-phase-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+            width: 100%;
+        }
+
+        .feedback-row {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin: 5px 0;
+        }
+
+        .letter-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #000;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 18px;
+            text-transform: uppercase;
+            box-sizing: border-box;
+            vertical-align: top;
+        }
+
+        .letter-box.green {
+            background-color: var(--green);
+            color: white;
+        }
+
+        .letter-box.yellow {
+            background-color: var(--yellow);
+            color: white;
+        }
+
+        .letter-box.gray {
+            background-color: var(--gray);
+            color: white;
+        }
+
+        .letter-box.extraneous {
+            border: 3px dotted #000;
+        }
+
+        .letter-box.missing {
+            background-color: transparent;
+            border: 3px solid #000;
+            color: var(--dark-text);
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             body {
@@ -275,6 +332,10 @@
                 <button class="submit-button" id="submitButton" onclick="submitGuess()">Submit</button>
             </div>
             <div class="validation-message" id="validationMessage"></div>
+        </div>
+        
+        <div class="clue-phase-container" id="cluePhaseContainer" style="display: none;">
+            <!-- Feedback rows will be dynamically added here -->
         </div>
         
         <div class="game-complete-container" id="gameCompleteContainer" style="display: none;">
@@ -620,8 +681,8 @@
             // Hide the initial guess input
             hideInitialGuessInput();
             
-            // TODO: Show clue phase feedback in next step
-            showValidationMessage('Transitioning to Clue Phase... (Coming in next step)');
+            // Show clue phase feedback
+            showCluePhase(guess);
         }
 
         // Clear and focus the input field
@@ -647,6 +708,51 @@
         function hideInitialGuessInput() {
             const container = document.getElementById('initialGuessContainer');
             container.style.display = 'none';
+        }
+
+        // Render feedback boxes from SpellingEvaluator results
+        function renderFeedbackBoxes(guess, target, evaluation) {
+            const { feedback, extraneous, missing } = evaluation;
+            const boxes = [];
+            
+            for (let i = 0; i < feedback.length; i++) {
+                const letter = missing[i] ? '' : (guess[i] || '');
+                const colorClass = feedback[i];
+                const extraneousClass = extraneous[i] ? ' extraneous' : '';
+                const missingClass = missing[i] ? ' missing' : '';
+                
+                boxes.push(`<div class="letter-box ${colorClass}${extraneousClass}${missingClass}">${letter}</div>`);
+            }
+            
+            return boxes.join('');
+        }
+
+        // Show the clue phase with feedback
+        function showCluePhase(guess) {
+            const container = document.getElementById('cluePhaseContainer');
+            container.style.display = 'flex';
+            
+            // Evaluate the guess using SpellingEvaluator
+            const evaluation = SpellingEvaluator.evaluate(guess, gameState.currentWord);
+            console.log('Evaluation result:', evaluation);
+            
+            // Create feedback row
+            const feedbackRow = document.createElement('div');
+            feedbackRow.className = 'feedback-row';
+            feedbackRow.innerHTML = renderFeedbackBoxes(guess, gameState.currentWord, evaluation);
+            
+            // Add the feedback row to the container
+            container.appendChild(feedbackRow);
+            
+            console.log(`Displayed feedback for guess: "${guess}" vs target: "${gameState.currentWord}"`);
+        }
+
+        // Hide the clue phase
+        function hideCluePhase() {
+            const container = document.getElementById('cluePhaseContainer');
+            container.style.display = 'none';
+            // Clear all feedback rows
+            container.innerHTML = '';
         }
 
         // Get current word data
@@ -695,6 +801,7 @@
             
             // Hide any remaining game elements
             hideInitialGuessInput();
+            hideCluePhase();
             
             // Show game complete message and play again button
             const gameCompleteContainer = document.getElementById('gameCompleteContainer');
@@ -717,9 +824,10 @@
             // Update progress counter
             updateProgressCounter();
             
-            // Hide game complete container
+            // Hide game complete container and clue phase
             const gameCompleteContainer = document.getElementById('gameCompleteContainer');
             gameCompleteContainer.style.display = 'none';
+            hideCluePhase();
             
             // Show initial guess input
             showInitialGuessInput();
