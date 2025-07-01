@@ -55,6 +55,27 @@
             gap: 20px;
         }
 
+        /* Start button styling */
+        .start-button {
+            background-color: var(--green);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .start-button:hover {
+            background-color: #5a9a54;
+        }
+
+        .start-button:active {
+            background-color: #4a8a44;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             body {
@@ -87,21 +108,92 @@
     <div class="progress-counter" id="progressCounter">Word 1 of 12</div>
     
     <div class="game-container" id="gameContainer">
-        <!-- Game elements will be added here -->
+        <button class="start-button" id="startButton" onclick="initializeGame()">Start Game</button>
     </div>
 
     <script>
+        // Word list with example sentences
+        const wordList = [
+            { word: "friend", sentence: "She is my best friend." },
+            { word: "bright", sentence: "The sun is very bright today." },
+            { word: "school", sentence: "I walk to school every morning." },
+            { word: "enough", sentence: "We have enough food for dinner." },
+            { word: "through", sentence: "The ball went through the window." },
+            { word: "because", sentence: "I stayed home because I was sick." },
+            { word: "different", sentence: "Each snowflake is different." },
+            { word: "beautiful", sentence: "The sunset was beautiful tonight." },
+            { word: "important", sentence: "It's important to brush your teeth." },
+            { word: "knowledge", sentence: "Reading books increases your knowledge." },
+            { word: "rhythm", sentence: "The music has a steady rhythm." },
+            { word: "necessary", sentence: "Sleep is necessary for good health." }
+        ];
+
         // Game state variables
         const gameState = {
             currentWordIndex: 0,
             currentPhase: 'initial', // 'initial' or 'clue'
-            totalWords: 12
+            totalWords: wordList.length,
+            currentWord: null,
+            currentSentence: null,
+            gameStarted: false
         };
 
-        // Initialize the game when page loads
+        // Get current word data
+        function getCurrentWordData() {
+            if (gameState.currentWordIndex < wordList.length) {
+                return wordList[gameState.currentWordIndex];
+            }
+            return null;
+        }
+
+        // Update progress counter display
+        function updateProgressCounter() {
+            const progressCounter = document.getElementById('progressCounter');
+            progressCounter.textContent = `Word ${gameState.currentWordIndex + 1} of ${gameState.totalWords}`;
+        }
+
+        // Advance to next word
+        function advanceToNextWord() {
+            gameState.currentWordIndex++;
+            if (gameState.currentWordIndex < gameState.totalWords) {
+                gameState.currentPhase = 'initial';
+                const wordData = getCurrentWordData();
+                gameState.currentWord = wordData.word;
+                gameState.currentSentence = wordData.sentence;
+                updateProgressCounter();
+                console.log(`Advanced to word ${gameState.currentWordIndex + 1}: ${gameState.currentWord}`);
+            } else {
+                console.log('Game completed!');
+                // Game completion will be handled in later steps
+            }
+        }
+
+        // Initialize the game
+        function initializeGame() {
+            gameState.gameStarted = true;
+            gameState.currentWordIndex = 0;
+            gameState.currentPhase = 'initial';
+            
+            const wordData = getCurrentWordData();
+            gameState.currentWord = wordData.word;
+            gameState.currentSentence = wordData.sentence;
+            
+            updateProgressCounter();
+            
+            // Hide start button
+            const startButton = document.getElementById('startButton');
+            startButton.style.display = 'none';
+            
+            console.log('Game initialized');
+            console.log(`Current word: ${gameState.currentWord}`);
+            console.log(`Current sentence: ${gameState.currentSentence}`);
+        }
+
+        // Initialize the page when it loads
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Spelldle initialized');
             console.log('Current game state:', gameState);
+            updateProgressCounter();
         });
     </script>
 </body>
