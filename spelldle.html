@@ -350,6 +350,16 @@
                 font-size: 16px;
                 margin-bottom: 20px;
             }
+            
+            .letter-box, .letter-input {
+                width: 45px;
+                height: 45px;
+                font-size: 16px;
+            }
+            
+            .feedback-row, .input-row-clue {
+                gap: 3px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -359,6 +369,38 @@
             
             .game-container {
                 padding: 10px;
+            }
+            
+            .letter-box, .letter-input {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+            
+            .feedback-row, .input-row-clue {
+                gap: 2px;
+            }
+            
+            .guess-input {
+                min-width: 150px;
+                font-size: 14px;
+            }
+            
+            .submit-button, .clue-submit-button {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .letter-box, .letter-input {
+                width: 35px;
+                height: 35px;
+                font-size: 12px;
+            }
+            
+            .guess-input {
+                min-width: 120px;
             }
         }
     </style>
@@ -670,12 +712,17 @@
             clearValidationMessage();
             
             // Convert to lowercase unless Caps Lock or Shift is engaged
-            if (!event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift'))) {
-                // Only convert if the last character added was uppercase
-                const lastChar = value.slice(-1);
-                if (lastChar && lastChar === lastChar.toUpperCase() && lastChar !== lastChar.toLowerCase()) {
-                    input.value = value.slice(0, -1) + lastChar.toLowerCase();
+            try {
+                if (!event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift'))) {
+                    // Only convert if the last character added was uppercase
+                    const lastChar = value.slice(-1);
+                    if (lastChar && lastChar === lastChar.toUpperCase() && lastChar !== lastChar.toLowerCase()) {
+                        input.value = value.slice(0, -1) + lastChar.toLowerCase();
+                    }
                 }
+            } catch (error) {
+                // Fallback for browsers that don't support getModifierState
+                console.log('getModifierState not supported, using fallback');
             }
         }
 
@@ -720,6 +767,9 @@
         function handleCorrectGuess() {
             console.log('Correct guess!');
             
+            // Disable input during transition
+            disableInputs();
+            
             // Play "Correct!" via text-to-speech
             speakCorrect();
             
@@ -756,8 +806,9 @@
             const container = document.getElementById('initialGuessContainer');
             container.style.display = 'flex';
             
-            // Focus the input field after a brief delay
+            // Enable inputs and focus the input field after a brief delay
             setTimeout(() => {
+                enableInputs();
                 clearAndFocusInput();
             }, 100);
         }
@@ -863,8 +914,16 @@
             }
             
             // Convert to lowercase unless Caps Lock or Shift is engaged
-            if (value && (!event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift')))) {
-                if (value === value.toUpperCase() && value !== value.toLowerCase()) {
+            try {
+                if (value && (!event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift')))) {
+                    if (value === value.toUpperCase() && value !== value.toLowerCase()) {
+                        input.value = value.toLowerCase();
+                        value = value.toLowerCase();
+                    }
+                }
+            } catch (error) {
+                // Fallback for browsers that don't support getModifierState
+                if (value && value === value.toUpperCase() && value !== value.toLowerCase()) {
                     input.value = value.toLowerCase();
                     value = value.toLowerCase();
                 }
@@ -981,6 +1040,32 @@
             addInputRow(container);
         }
 
+        // Disable inputs during transitions
+        function disableInputs() {
+            const guessInput = document.getElementById('guessInput');
+            const submitButton = document.getElementById('submitButton');
+            const clueInputs = document.querySelectorAll('.letter-input');
+            const clueSubmitButtons = document.querySelectorAll('.clue-submit-button');
+            
+            if (guessInput) guessInput.disabled = true;
+            if (submitButton) submitButton.disabled = true;
+            clueInputs.forEach(input => input.disabled = true);
+            clueSubmitButtons.forEach(button => button.disabled = true);
+        }
+
+        // Enable inputs after transitions
+        function enableInputs() {
+            const guessInput = document.getElementById('guessInput');
+            const submitButton = document.getElementById('submitButton');
+            const clueInputs = document.querySelectorAll('.letter-input');
+            const clueSubmitButtons = document.querySelectorAll('.clue-submit-button');
+            
+            if (guessInput) guessInput.disabled = false;
+            if (submitButton) submitButton.disabled = false;
+            clueInputs.forEach(input => input.disabled = false);
+            clueSubmitButtons.forEach(button => button.disabled = false);
+        }
+
         // Hide the clue phase
         function hideCluePhase() {
             const container = document.getElementById('cluePhaseContainer');
@@ -1010,20 +1095,25 @@
                 // Reset to Initial Guess Phase for new word
                 gameState.currentPhase = 'initial';
                 const wordData = getCurrentWordData();
-                gameState.currentWord = wordData.word;
-                gameState.currentSentence = wordData.sentence;
-                updateProgressCounter();
-                
-                // Hide clue phase and show initial guess input for new word
-                hideCluePhase();
-                showInitialGuessInput();
-                
-                // Auto-play the new word
-                setTimeout(() => {
-                    speakCurrentWord();
-                }, 500); // Brief delay before speaking
-                
-                console.log(`Advanced to word ${gameState.currentWordIndex + 1}: ${gameState.currentWord}`);
+                if (wordData) {
+                    gameState.currentWord = wordData.word;
+                    gameState.currentSentence = wordData.sentence;
+                    updateProgressCounter();
+                    
+                    // Hide clue phase and show initial guess input for new word
+                    hideCluePhase();
+                    showInitialGuessInput();
+                    
+                    // Auto-play the new word
+                    setTimeout(() => {
+                        speakCurrentWord();
+                    }, 500); // Brief delay before speaking
+                    
+                    console.log(`Advanced to word ${gameState.currentWordIndex + 1}: ${gameState.currentWord}`);
+                } else {
+                    console.error('Failed to get word data for index:', gameState.currentWordIndex);
+                    handleGameCompletion();
+                }
             } else {
                 // Handle game completion (after word 12)
                 handleGameCompletion();
@@ -1047,77 +1137,114 @@
         function playAgain() {
             console.log('Starting new game');
             
-            // Reset game state to word 1
-            gameState.currentWordIndex = 0;
-            gameState.currentPhase = 'initial';
-            gameState.gameStarted = true;
-            
-            const wordData = getCurrentWordData();
-            gameState.currentWord = wordData.word;
-            gameState.currentSentence = wordData.sentence;
-            
-            // Update progress counter
-            updateProgressCounter();
-            
-            // Hide game complete container and clue phase
-            const gameCompleteContainer = document.getElementById('gameCompleteContainer');
-            gameCompleteContainer.style.display = 'none';
-            hideCluePhase();
-            
-            // Show initial guess input
-            showInitialGuessInput();
-            
-            // Auto-play the first word
-            setTimeout(() => {
-                speakCurrentWord();
-            }, 500);
+            try {
+                // Reset game state to word 1
+                gameState.currentWordIndex = 0;
+                gameState.currentPhase = 'initial';
+                gameState.gameStarted = true;
+                
+                const wordData = getCurrentWordData();
+                if (wordData) {
+                    gameState.currentWord = wordData.word;
+                    gameState.currentSentence = wordData.sentence;
+                    
+                    // Update progress counter
+                    updateProgressCounter();
+                    
+                    // Hide game complete container and clue phase
+                    const gameCompleteContainer = document.getElementById('gameCompleteContainer');
+                    gameCompleteContainer.style.display = 'none';
+                    hideCluePhase();
+                    
+                    // Clear any validation messages
+                    clearValidationMessage();
+                    
+                    // Show initial guess input
+                    showInitialGuessInput();
+                    
+                    // Auto-play the first word
+                    setTimeout(() => {
+                        speakCurrentWord();
+                    }, 500);
+                } else {
+                    console.error('Failed to reset game - no word data available');
+                }
+            } catch (error) {
+                console.error('Error during game reset:', error);
+            }
         }
 
         // Initialize the game
         function initializeGame() {
-            gameState.gameStarted = true;
-            gameState.currentWordIndex = 0;
-            gameState.currentPhase = 'initial';
-            
-            const wordData = getCurrentWordData();
-            gameState.currentWord = wordData.word;
-            gameState.currentSentence = wordData.sentence;
-            
-            updateProgressCounter();
-            
-            // Hide start button and show audio controls
-            const startButton = document.getElementById('startButton');
-            startButton.style.display = 'none';
-            
-            const audioControls = document.getElementById('audioControls');
-            audioControls.style.display = 'flex';
-            
-            // Show initial guess input
-            showInitialGuessInput();
-            
-            // Auto-play the first word
-            setTimeout(() => {
-                speakCurrentWord();
-            }, 500); // Brief delay to let UI update
-            
-            console.log('Game initialized');
-            console.log(`Current word: ${gameState.currentWord}`);
-            console.log(`Current sentence: ${gameState.currentSentence}`);
+            try {
+                gameState.gameStarted = true;
+                gameState.currentWordIndex = 0;
+                gameState.currentPhase = 'initial';
+                
+                const wordData = getCurrentWordData();
+                if (wordData) {
+                    gameState.currentWord = wordData.word;
+                    gameState.currentSentence = wordData.sentence;
+                    
+                    updateProgressCounter();
+                    
+                    // Hide start button and show audio controls
+                    const startButton = document.getElementById('startButton');
+                    startButton.style.display = 'none';
+                    
+                    const audioControls = document.getElementById('audioControls');
+                    audioControls.style.display = 'flex';
+                    
+                    // Show initial guess input
+                    showInitialGuessInput();
+                    
+                    // Auto-play the first word
+                    setTimeout(() => {
+                        speakCurrentWord();
+                    }, 500); // Brief delay to let UI update
+                    
+                    console.log('Game initialized');
+                    console.log(`Current word: ${gameState.currentWord}`);
+                    console.log(`Current sentence: ${gameState.currentSentence}`);
+                } else {
+                    console.error('Failed to initialize game - no word data available');
+                }
+            } catch (error) {
+                console.error('Error during game initialization:', error);
+            }
         }
 
         // Initialize the page when it loads
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Spelldle initialized');
-            console.log('Current game state:', gameState);
-            updateProgressCounter();
-            checkTTSSupport();
-            
-            // Test SpellingEvaluator integration
-            console.log('Testing SpellingEvaluator integration:');
-            const testResult = SpellingEvaluator.evaluate('hello', 'world');
-            console.log('SpellingEvaluator.evaluate("hello", "world"):', testResult);
-            console.log('SpellingEvaluator.isWin("friend", "friend"):', SpellingEvaluator.isWin('friend', 'friend'));
-            console.log('SpellingEvaluator.isWin("friend", "fiend"):', SpellingEvaluator.isWin('friend', 'fiend'));
+            try {
+                console.log('Spelldle initialized');
+                console.log('Current game state:', gameState);
+                updateProgressCounter();
+                checkTTSSupport();
+                
+                // Validate word list
+                if (wordList.length !== 12) {
+                    console.warn(`Expected 12 words, found ${wordList.length}`);
+                }
+                
+                // Validate each word entry
+                wordList.forEach((entry, index) => {
+                    if (!entry.word || !entry.sentence) {
+                        console.error(`Invalid word entry at index ${index}:`, entry);
+                    }
+                });
+                
+                // Test SpellingEvaluator integration (only in development)
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    console.log('Testing SpellingEvaluator integration:');
+                    const testResult = SpellingEvaluator.evaluate('hello', 'world');
+                    console.log('SpellingEvaluator.evaluate("hello", "world"):', testResult);
+                    console.log('SpellingEvaluator.isWin("friend", "friend"):', SpellingEvaluator.isWin('friend', 'friend'));
+                    console.log('SpellingEvaluator.isWin("friend", "fiend"):', SpellingEvaluator.isWin('friend', 'fiend'));
+                }
+            } catch (error) {
+                console.error('Error during page initialization:', error);
+            }
         });
     </script>
 </body>
