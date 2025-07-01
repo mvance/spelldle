@@ -315,6 +315,125 @@
         let currentUtterance = null;
         let synth = null;
 
+        /**
+         * Spelling Evaluator namespace containing all evaluation functions
+         */
+        const SpellingEvaluator = {
+            /**
+             * Marks length differences between guess and target words.
+             * Handles cases where guess is longer (extraneous letters) or shorter (missing letters) than target.
+             * @param {number} guessLength - Length of the guess word
+             * @param {number} targetLength - Length of the target word
+             * @param {Object} result - Result object containing feedback, extraneous, and missing arrays
+             * @private
+             */
+            _markLengthDifferences(guessLength, targetLength, result) {
+                if (guessLength > targetLength) {
+                    // Mark extra letters as extraneous
+                    for (let i = targetLength; i < guessLength; i++) {
+                        result.extraneous[i] = true;
+                    }
+                } else if (guessLength < targetLength) {
+                    // Mark missing positions
+                    for (let i = guessLength; i < targetLength; i++) {
+                        result.feedback[i] = 'missing';
+                        result.missing[i] = true;
+                    }
+                }
+            },
+
+            /**
+             * Processes exact position matches between guess and target (green letters).
+             * Only checks the overlapping portion of both words for character-by-character matches.
+             * @param {string} guess - The guessed word
+             * @param {string} target - The target word
+             * @param {Object} result - Result object containing the feedback array
+             * @param {boolean[]} targetUsed - Array tracking which target positions have been matched
+             * @param {boolean[]} guessUsed - Array tracking which guess positions have been matched
+             * @private
+             */
+            _processExactMatches(guess, target, result, targetUsed, guessUsed) {
+                const overlapLength = Math.min(guess.length, target.length);
+                
+                for (let i = 0; i < overlapLength; i++) {
+                    if (guess[i] === target[i]) {
+                        result.feedback[i] = 'green';
+                        targetUsed[i] = true;
+                        guessUsed[i] = true;
+                    }
+                }
+            },
+
+            /**
+             * Processes wrong position matches between guess and target (yellow letters).
+             * Finds letters that exist in target but are in wrong positions in guess.
+             * Only processes letters not already matched in exact positions.
+             * @param {string} guess - The guessed word
+             * @param {string} target - The target word
+             * @param {Object} result - Result object containing the feedback array
+             * @param {boolean[]} targetUsed - Array tracking which target positions have been matched
+             * @param {boolean[]} guessUsed - Array tracking which guess positions have been matched
+             * @private
+             */
+            _processWrongPositions(guess, target, result, targetUsed, guessUsed) {
+                for (let i = 0; i < guess.length; i++) {
+                    if (guessUsed[i]) continue; // Already matched as green
+                    
+                    for (let j = 0; j < target.length; j++) {
+                        if (!targetUsed[j] && guess[i] === target[j]) {
+                            result.feedback[i] = 'yellow';
+                            targetUsed[j] = true;
+                            guessUsed[i] = true;
+                            break; // Only match one occurrence
+                        }
+                    }
+                }
+            },
+
+            /**
+             * Evaluates a spelling guess against a target word.
+             * Returns an object with:
+             *   - feedback: array of 'green', 'yellow', 'gray', or 'missing'
+             *   - extraneous: array of booleans (true for extraneous letters)
+             *   - missing: array of booleans (true for missing letter positions)
+             * @param {string} guess - The word being guessed
+             * @param {string} target - The target word to match against
+             * @returns {Object} { feedback: string[], extraneous: boolean[], missing: boolean[] }
+             */
+            evaluate(guess, target) {
+                const guessLength = guess.length;
+                const targetLength = target.length;
+                const maxLength = Math.max(guessLength, targetLength);
+                
+                // Initialize result object and tracking arrays
+                const result = {
+                    feedback: Array(maxLength).fill('gray'),
+                    extraneous: Array(maxLength).fill(false),
+                    missing: Array(maxLength).fill(false)
+                };
+                
+                const targetUsed = Array(targetLength).fill(false);
+                const guessUsed = Array(guessLength).fill(false);
+
+                // Process evaluation in logical steps
+                this._markLengthDifferences(guessLength, targetLength, result);
+                this._processExactMatches(guess, target, result, targetUsed, guessUsed);
+                this._processWrongPositions(guess, target, result, targetUsed, guessUsed);
+
+                return result;
+            },
+
+            /**
+             * Checks if the guess is a win (exact match: case, length, content).
+             * @param {string} guess - The guessed word
+             * @param {string} target - The target word
+             * @returns {boolean} True if guess exactly matches target
+             */
+            isWin(guess, target) {
+                return guess === target;
+            }
+        };
+
         // Check for text-to-speech support
         function checkTTSSupport() {
             if ('speechSynthesis' in window) {
@@ -649,6 +768,13 @@
             console.log('Current game state:', gameState);
             updateProgressCounter();
             checkTTSSupport();
+            
+            // Test SpellingEvaluator integration
+            console.log('Testing SpellingEvaluator integration:');
+            const testResult = SpellingEvaluator.evaluate('hello', 'world');
+            console.log('SpellingEvaluator.evaluate("hello", "world"):', testResult);
+            console.log('SpellingEvaluator.isWin("friend", "friend"):', SpellingEvaluator.isWin('friend', 'friend'));
+            console.log('SpellingEvaluator.isWin("friend", "fiend"):', SpellingEvaluator.isWin('friend', 'fiend'));
         });
     </script>
 </body>
