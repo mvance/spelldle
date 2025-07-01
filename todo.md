@@ -17,18 +17,18 @@
 
 ## Step 2: Word List and Game State Management
 - [ ] Add hardcoded array of 12 words with example sentences:
-  - [ ] FRIEND - "She is my best friend."
-  - [ ] BRIGHT - "The sun is very bright today."
-  - [ ] SCHOOL - "I walk to school every morning."
-  - [ ] ENOUGH - "We have enough food for dinner."
-  - [ ] THROUGH - "The ball went through the window."
-  - [ ] BECAUSE - "I stayed home because I was sick."
-  - [ ] DIFFERENT - "Each snowflake is different."
-  - [ ] BEAUTIFUL - "The sunset was beautiful tonight."
-  - [ ] IMPORTANT - "It's important to brush your teeth."
-  - [ ] KNOWLEDGE - "Reading books increases your knowledge."
-  - [ ] RHYTHM - "The music has a steady rhythm."
-  - [ ] NECESSARY - "Sleep is necessary for good health."
+  - [ ] friend - "She is my best friend."
+  - [ ] bright - "The sun is very bright today."
+  - [ ] school - "I walk to school every morning."
+  - [ ] enough - "We have enough food for dinner."
+  - [ ] through - "The ball went through the window."
+  - [ ] because - "I stayed home because I was sick."
+  - [ ] different - "Each snowflake is different."
+  - [ ] beautiful - "The sunset was beautiful tonight."
+  - [ ] important - "It's important to brush your teeth."
+  - [ ] knowledge - "Reading books increases your knowledge."
+  - [ ] rhythm - "The music has a steady rhythm."
+  - [ ] necessary - "Sleep is necessary for good health."
 - [ ] Create game state object tracking:
   - [ ] Current word index (starting at 0)
   - [ ] Current phase ('initial' or 'clue')

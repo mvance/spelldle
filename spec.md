@@ -13,18 +13,18 @@ Spelldle is an educational spelling web application inspired by Wordle's letter 
 ## Word List
 Hardcoded array of 12 words with example sentences:
 
-1. **FRIEND** - "She is my best friend."
-2. **BRIGHT** - "The sun is very bright today."
-3. **SCHOOL** - "I walk to school every morning."
-4. **ENOUGH** - "We have enough food for dinner."
-5. **THROUGH** - "The ball went through the window."
-6. **BECAUSE** - "I stayed home because I was sick."
-7. **DIFFERENT** - "Each snowflake is different."
-8. **BEAUTIFUL** - "The sunset was beautiful tonight."
-9. **IMPORTANT** - "It's important to brush your teeth."
-10. **KNOWLEDGE** - "Reading books increases your knowledge."
-11. **RHYTHM** - "The music has a steady rhythm."
-12. **NECESSARY** - "Sleep is necessary for good health."
+1. **friend** - "She is my best friend."
+2. **bright** - "The sun is very bright today."
+3. **school** - "I walk to school every morning."
+4. **enough** - "We have enough food for dinner."
+5. **through** - "The ball went through the window."
+6. **because** - "I stayed home because I was sick."
+7. **different** - "Each snowflake is different."
+8. **beautiful** - "The sunset was beautiful tonight."
+9. **important** - "It's important to brush your teeth."
+10. **knowledge** - "Reading books increases your knowledge."
+11. **rhythm** - "The music has a steady rhythm."
+12. **necessary** - "Sleep is necessary for good health."
 
 ## Core Features
 - Progress counter at top of page: "Word 1 of 12"
