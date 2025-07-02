@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spelldle</title>
+    <!-- Papa Parse CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
         /* CSS Reset */
         * {
@@ -399,6 +401,128 @@
             }
         }
 
+        /* Welcome screen styling */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .welcome-screen h1 {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--blue);
+            margin: 0;
+        }
+
+        .lesson-selector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .lesson-selector label {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .lesson-dropdown {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            border: 2px solid var(--dark-border);
+            padding: 12px 16px;
+            font-size: 16px;
+            border-radius: 6px;
+            min-width: 250px;
+            font-family: inherit;
+        }
+
+        .lesson-dropdown:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            border: 2px solid var(--dark-border);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            color: var(--blue);
+            margin-bottom: 20px;
+        }
+
+        .lesson-stats {
+            margin: 20px 0;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .lesson-navigation {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .modal-button {
+            background-color: var(--blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .modal-button:hover {
+            background-color: #4a8fc4;
+        }
+
+        .modal-button:active {
+            background-color: #3a7fb4;
+        }
+
+        .error-details {
+            background-color: #2a2a2a;
+            border: 1px solid var(--dark-border);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            text-align: left;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
         @media (max-width: 320px) {
             .letter-box, .letter-input {
                 width: 35px;
@@ -409,6 +533,19 @@
             .guess-input {
                 min-width: 120px;
             }
+            
+            .welcome-screen h1 {
+                font-size: 36px;
+            }
+            
+            .lesson-dropdown {
+                min-width: 200px;
+                font-size: 14px;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -416,7 +553,19 @@
     <div class="progress-counter" id="progressCounter" style="display: none;">Word 1 of 12</div>
     
     <div class="game-container" id="gameContainer">
-        <button class="start-button" id="startButton" onclick="initializeGame()">Start Game</button>
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen" style="display: flex;">
+            <h1>Spelldle</h1>
+            <div class="lesson-selector" id="lessonSelector">
+                <label for="lessonDropdown">Choose a lesson:</label>
+                <select id="lessonDropdown" class="lesson-dropdown">
+                    <option value="">Loading lessons...</option>
+                </select>
+                <button class="start-button" id="startLessonButton" onclick="startSelectedLesson()" disabled>Start Lesson</button>
+            </div>
+        </div>
+        
+        <button class="start-button" id="startButton" onclick="initializeGame()" style="display: none;">Start Game</button>
         <div class="audio-controls" id="audioControls" style="display: none;">
             <button class="repeat-button" id="repeatButton" onclick="repeatWord()" disabled>Repeat Word</button>
         </div>
@@ -449,11 +598,43 @@
             <div class="game-complete-message">Game Complete!</div>
             <button class="play-again-button" onclick="playAgain()">Play Again</button>
         </div>
+        
+        <!-- Lesson Complete Modal -->
+        <div class="modal-overlay" id="lessonCompleteModal" style="display: none;">
+            <div class="modal-content">
+                <h2>Lesson Complete!</h2>
+                <div class="lesson-stats" id="lessonStats"></div>
+                <div class="lesson-navigation">
+                    <select id="nextActionDropdown" class="lesson-dropdown">
+                        <option value="next">Next Lesson</option>
+                        <option value="menu">Return to Menu</option>
+                    </select>
+                    <button class="modal-button" onclick="handleLessonComplete()">Continue</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Error Modal -->
+        <div class="modal-overlay" id="errorModal" style="display: none;">
+            <div class="modal-content">
+                <h2>Lesson Load Error</h2>
+                <div class="error-details" id="errorDetails"></div>
+                <button class="modal-button" onclick="retryLessonLoad()">Retry</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Word list with example sentences
-        const wordList = [
+        // CSV data URL
+        const CSV_URL = 'https://gist.githubusercontent.com/mvance/1096921b2243372780ccef1d82f1a156/raw/';
+        const CSV_TIMEOUT = 20000; // 20 seconds
+
+        // Lesson data
+        let lessonsData = [];
+        let availableLessons = [];
+        
+        // Fallback word list (original hardcoded words)
+        const fallbackWordList = [
             { word: "friend", sentence: "She is my best friend." },
             { word: "bright", sentence: "The sun is very bright today." },
             { word: "school", sentence: "I walk to school every morning." },
@@ -472,16 +653,345 @@
         const gameState = {
             currentWordIndex: 0,
             currentPhase: 'initial', // 'initial' or 'clue'
-            totalWords: wordList.length,
+            totalWords: 0,
             currentWord: null,
             currentSentence: null,
-            gameStarted: false
+            gameStarted: false,
+            currentLesson: null,
+            currentLessonWords: [],
+            correctGuesses: 0,
+            totalGuesses: 0,
+            lessonStartTime: null
         };
 
         // Text-to-speech variables
         let ttsSupported = false;
         let currentUtterance = null;
         let synth = null;
+
+        // Fetch and parse CSV lessons
+        async function loadLessons() {
+            try {
+                console.log('Loading lessons from CSV...');
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CSV_TIMEOUT);
+                
+                const response = await fetch(CSV_URL, {
+                    signal: controller.signal,
+                    headers: {
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const csvText = await response.text();
+                
+                return new Promise((resolve, reject) => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            if (results.errors.length > 0) {
+                                reject(new Error(`CSV Parse Error: ${results.errors.map(e => e.message).join(', ')}`));
+                                return;
+                            }
+                            
+                            // Map CSV headers to expected format
+                            const headers = results.meta.fields || [];
+                            
+                            // Check if we have the expected headers (with flexible naming)
+                            const hasLessonName = headers.includes('Lesson Name') || headers.includes('lesson_name');
+                            const hasWord = headers.includes('Word') || headers.includes('word');
+                            const hasSentence = headers.includes('Example Sentence') || headers.includes('sentence');
+                            
+                            if (!hasLessonName || !hasWord || !hasSentence) {
+                                reject(new Error(`Missing required columns. Found: ${headers.join(', ')}`));
+                                return;
+                            }
+                            
+                            // Normalize the data to use consistent field names
+                            lessonsData = results.data.map(row => ({
+                                lesson_name: row['Lesson Name'] || row['lesson_name'],
+                                word: row['Word'] || row['word'],
+                                sentence: row['Example Sentence'] || row['sentence']
+                            })).filter(row => row.lesson_name && row.word && row.sentence);
+                            
+                            // Clean up any problematic entries (filter out entries with spaces in word field)
+                            lessonsData = lessonsData.filter(row => {
+                                if (row.word.includes(' ') && row.word.trim() !== row.word) {
+                                    console.warn(`Skipping problematic word entry: "${row.word}"`);
+                                    return false;
+                                }
+                                return true;
+                            });
+                            
+                            availableLessons = [...new Set(lessonsData.map(row => row.lesson_name))].filter(Boolean);
+                            
+                            console.log(`Loaded ${lessonsData.length} words across ${availableLessons.length} lessons`);
+                            console.log('Available lessons:', availableLessons);
+                            resolve();
+                        },
+                        error: function(error) {
+                            reject(new Error(`Papa Parse Error: ${error.message}`));
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Failed to load lessons:', error);
+                throw error;
+            }
+        }
+
+        // Show error modal with detailed information
+        function showErrorModal(error, response = null) {
+            const modal = document.getElementById('errorModal');
+            const details = document.getElementById('errorDetails');
+            
+            const errorInfo = {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                url: CSV_URL,
+                error: error.message,
+                stack: error.stack
+            };
+            
+            if (response) {
+                errorInfo.httpStatus = response.status;
+                errorInfo.httpStatusText = response.statusText;
+                errorInfo.responseHeaders = Object.fromEntries(response.headers.entries());
+            }
+            
+            details.textContent = JSON.stringify(errorInfo, null, 2);
+            modal.style.display = 'flex';
+            
+            // Disable all controls
+            disableAllControls();
+        }
+
+        // Disable all game controls
+        function disableAllControls() {
+            const controls = document.querySelectorAll('button, input, select');
+            controls.forEach(control => {
+                if (!control.onclick || control.onclick.toString().indexOf('retryLessonLoad') === -1) {
+                    control.disabled = true;
+                }
+            });
+        }
+
+        // Enable all game controls
+        function enableAllControls() {
+            const controls = document.querySelectorAll('button, input, select');
+            controls.forEach(control => control.disabled = false);
+        }
+
+        // Retry lesson loading
+        async function retryLessonLoad() {
+            const modal = document.getElementById('errorModal');
+            modal.style.display = 'none';
+            enableAllControls();
+            await initializeLessons();
+        }
+
+        // Populate lesson dropdown
+        function populateLessonDropdown() {
+            const dropdown = document.getElementById('lessonDropdown');
+            const startButton = document.getElementById('startLessonButton');
+            
+            dropdown.innerHTML = '<option value="">Select a lesson...</option>';
+            
+            availableLessons.forEach(lessonName => {
+                const option = document.createElement('option');
+                option.value = lessonName;
+                option.textContent = lessonName;
+                dropdown.appendChild(option);
+            });
+            
+            // Remove any existing event listeners and add new one
+            dropdown.removeEventListener('change', handleLessonDropdownChange);
+            dropdown.addEventListener('change', handleLessonDropdownChange);
+            
+            startButton.disabled = true;
+        }
+
+        // Handle lesson dropdown change
+        function handleLessonDropdownChange() {
+            const dropdown = document.getElementById('lessonDropdown');
+            const startButton = document.getElementById('startLessonButton');
+            startButton.disabled = !dropdown.value;
+        }
+
+        // Show fallback when lessons fail to load
+        function showLessonLoadFallback() {
+            const dropdown = document.getElementById('lessonDropdown');
+            dropdown.innerHTML = '<option value="">Failed to load lessons</option>';
+            
+            // Add fallback option to use original word list
+            const fallbackOption = document.createElement('option');
+            fallbackOption.value = 'fallback';
+            fallbackOption.textContent = 'Original Word List (Fallback)';
+            dropdown.appendChild(fallbackOption);
+            
+            dropdown.addEventListener('change', function() {
+                const startButton = document.getElementById('startLessonButton');
+                startButton.disabled = !this.value;
+                if (this.value === 'fallback') {
+                    startButton.textContent = 'Start Game';
+                } else {
+                    startButton.textContent = 'Start Lesson';
+                }
+            });
+        }
+
+        // Start selected lesson
+        function startSelectedLesson() {
+            const dropdown = document.getElementById('lessonDropdown');
+            const selectedLesson = dropdown.value;
+            
+            if (!selectedLesson) return;
+            
+            if (selectedLesson === 'fallback') {
+                // Use fallback word list
+                gameState.currentLesson = null;
+                gameState.currentLessonWords = [];
+                gameState.totalWords = fallbackWordList.length;
+                gameState.currentWordIndex = 0;
+                gameState.correctGuesses = 0;
+                gameState.totalGuesses = 0;
+                gameState.lessonStartTime = Date.now();
+                
+                console.log('Starting fallback game with original word list');
+            } else {
+                // Filter words for selected lesson
+                gameState.currentLesson = selectedLesson;
+                gameState.currentLessonWords = lessonsData.filter(row => row.lesson_name === selectedLesson);
+                gameState.totalWords = gameState.currentLessonWords.length;
+                gameState.currentWordIndex = 0;
+                gameState.correctGuesses = 0;
+                gameState.totalGuesses = 0;
+                gameState.lessonStartTime = Date.now();
+                
+                console.log(`Starting lesson: ${selectedLesson} with ${gameState.totalWords} words`);
+            }
+            
+            // Hide welcome screen and start game
+            document.getElementById('welcomeScreen').style.display = 'none';
+            initializeGame();
+        }
+
+        // Handle lesson completion
+        function handleLessonCompletion() {
+            console.log('Lesson completed!');
+            
+            // Calculate stats
+            const accuracy = gameState.totalGuesses > 0 ? Math.round((gameState.correctGuesses / gameState.totalGuesses) * 100) : 0;
+            const duration = Math.round((Date.now() - gameState.lessonStartTime) / 1000);
+            
+            // Hide game elements
+            hideInitialGuessInput();
+            hideCluePhase();
+            
+            // Show lesson complete modal
+            const modal = document.getElementById('lessonCompleteModal');
+            const stats = document.getElementById('lessonStats');
+            const dropdown = document.getElementById('nextActionDropdown');
+            
+            stats.innerHTML = `
+                <div><strong>Lesson:</strong> ${gameState.currentLesson}</div>
+                <div><strong>Words:</strong> ${gameState.totalWords}</div>
+                <div><strong>Accuracy:</strong> ${accuracy}% (${gameState.correctGuesses}/${gameState.totalGuesses})</div>
+                <div><strong>Time:</strong> ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}</div>
+            `;
+            
+            // Check if there's a next lesson
+            const currentLessonIndex = availableLessons.indexOf(gameState.currentLesson);
+            const hasNextLesson = currentLessonIndex < availableLessons.length - 1;
+            
+            dropdown.innerHTML = '';
+            if (hasNextLesson) {
+                const nextLesson = availableLessons[currentLessonIndex + 1];
+                dropdown.innerHTML += `<option value="next">Next Lesson: ${nextLesson}</option>`;
+            }
+            dropdown.innerHTML += '<option value="menu">Return to Menu</option>';
+            
+            modal.style.display = 'flex';
+        }
+
+        // Handle lesson complete action
+        function handleLessonComplete() {
+            const dropdown = document.getElementById('nextActionDropdown');
+            const action = dropdown.value;
+            const modal = document.getElementById('lessonCompleteModal');
+            
+            modal.style.display = 'none';
+            
+            if (action === 'next') {
+                // Start next lesson
+                const currentLessonIndex = availableLessons.indexOf(gameState.currentLesson);
+                const nextLesson = availableLessons[currentLessonIndex + 1];
+                
+                if (nextLesson) {
+                    const lessonDropdown = document.getElementById('lessonDropdown');
+                    lessonDropdown.value = nextLesson;
+                    startSelectedLesson();
+                }
+            } else {
+                // Return to menu
+                returnToWelcomeScreen();
+            }
+        }
+
+        // Return to welcome screen
+        function returnToWelcomeScreen() {
+            // Reset game state
+            gameState.currentLesson = null;
+            gameState.currentLessonWords = [];
+            gameState.gameStarted = false;
+            gameState.currentWordIndex = 0;
+            
+            // Hide all game elements
+            hideInitialGuessInput();
+            hideCluePhase();
+            document.getElementById('gameCompleteContainer').style.display = 'none';
+            document.getElementById('audioControls').style.display = 'none';
+            document.getElementById('progressCounter').style.display = 'none';
+            
+            // Show welcome screen
+            document.getElementById('welcomeScreen').style.display = 'flex';
+            
+            // Reset lesson dropdown
+            document.getElementById('lessonDropdown').value = '';
+            document.getElementById('startLessonButton').disabled = true;
+        }
+
+        // Initialize lessons on page load
+        async function initializeLessons() {
+            try {
+                console.log('Starting lesson initialization...');
+                await loadLessons();
+                populateLessonDropdown();
+                console.log('Lessons initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize lessons:', error);
+                // Show fallback option if lessons fail to load
+                showLessonLoadFallback();
+                showErrorModal(error);
+            }
+        }
+
+        // Track guesses for lesson stats
+        function trackGuess(isCorrect) {
+            gameState.totalGuesses++;
+            if (isCorrect) {
+                gameState.correctGuesses++;
+            }
+        }
 
         /**
          * Spelling Evaluator namespace containing all evaluation functions
@@ -774,6 +1284,9 @@
         function handleCorrectGuess() {
             console.log('Correct guess!');
             
+            // Track the guess for lesson stats
+            trackGuess(true);
+            
             // Disable input during transition
             disableInputs();
             
@@ -789,6 +1302,9 @@
         // Handle incorrect guess
         function handleIncorrectGuess(guess) {
             console.log(`Incorrect guess: "${guess}"`);
+            
+            // Track the guess for lesson stats
+            trackGuess(false);
             
             // Transition to Clue Phase (don't clear screen)
             gameState.currentPhase = 'clue';
@@ -1032,6 +1548,9 @@
         function handleIncorrectClueGuess(guess) {
             console.log(`Incorrect clue guess: "${guess}"`);
             
+            // Track the guess for lesson stats
+            trackGuess(false);
+            
             const container = document.getElementById('cluePhaseContainer');
             const wrapper = container.querySelector('.feedback-rows-wrapper');
             
@@ -1091,10 +1610,18 @@
             container.innerHTML = '';
         }
 
-        // Get current word data
+        // Get current word data (updated for lessons)
         function getCurrentWordData() {
-            if (gameState.currentWordIndex < wordList.length) {
-                return wordList[gameState.currentWordIndex];
+            if (gameState.currentLessonWords.length > 0) {
+                if (gameState.currentWordIndex < gameState.currentLessonWords.length) {
+                    const row = gameState.currentLessonWords[gameState.currentWordIndex];
+                    return { word: row.word, sentence: row.sentence };
+                }
+            } else {
+                // Fallback to hardcoded words
+                if (gameState.currentWordIndex < fallbackWordList.length) {
+                    return fallbackWordList[gameState.currentWordIndex];
+                }
             }
             return null;
         }
@@ -1102,7 +1629,12 @@
         // Update progress counter display
         function updateProgressCounter() {
             const progressCounter = document.getElementById('progressCounter');
-            progressCounter.textContent = `Word ${gameState.currentWordIndex + 1} of ${gameState.totalWords}`;
+            if (gameState.currentLesson) {
+                progressCounter.textContent = `${gameState.currentLesson} - Word ${gameState.currentWordIndex + 1} of ${gameState.totalWords}`;
+            } else {
+                progressCounter.textContent = `Word ${gameState.currentWordIndex + 1} of ${gameState.totalWords}`;
+            }
+            progressCounter.style.display = 'block';
         }
 
         // Advance to next word
@@ -1137,17 +1669,18 @@
             }
         }
 
-        // Handle game completion
+        // Updated game completion handler
         function handleGameCompletion() {
-            console.log('Game completed!');
-            
-            // Hide any remaining game elements
-            hideInitialGuessInput();
-            hideCluePhase();
-            
-            // Show game complete message and play again button
-            const gameCompleteContainer = document.getElementById('gameCompleteContainer');
-            gameCompleteContainer.style.display = 'flex';
+            if (gameState.currentLesson) {
+                handleLessonCompletion();
+            } else {
+                // Original game complete behavior
+                console.log('Game completed!');
+                hideInitialGuessInput();
+                hideCluePhase();
+                const gameCompleteContainer = document.getElementById('gameCompleteContainer');
+                gameCompleteContainer.style.display = 'flex';
+            }
         }
 
         // Play again functionality
@@ -1205,7 +1738,10 @@
                     
                     updateProgressCounter();
                     
-                    // Hide start button and show audio controls
+                    // Hide welcome screen and start button
+                    const welcomeScreen = document.getElementById('welcomeScreen');
+                    if (welcomeScreen) welcomeScreen.style.display = 'none';
+                    
                     const startButton = document.getElementById('startButton');
                     startButton.style.display = 'none';
                     
@@ -1239,15 +1775,18 @@
                 updateProgressCounter();
                 checkTTSSupport();
                 
-                // Validate word list
-                if (wordList.length !== 12) {
-                    console.warn(`Expected 12 words, found ${wordList.length}`);
+                // Initialize lessons
+                initializeLessons();
+                
+                // Validate fallback word list
+                if (fallbackWordList.length !== 12) {
+                    console.warn(`Expected 12 fallback words, found ${fallbackWordList.length}`);
                 }
                 
-                // Validate each word entry
-                wordList.forEach((entry, index) => {
+                // Validate each fallback word entry
+                fallbackWordList.forEach((entry, index) => {
                     if (!entry.word || !entry.sentence) {
-                        console.error(`Invalid word entry at index ${index}:`, entry);
+                        console.error(`Invalid fallback word entry at index ${index}:`, entry);
                     }
                 });
                 
