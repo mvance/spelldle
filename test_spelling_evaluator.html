@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Evaluator Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-case {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .feedback {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px;
+            padding: 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            border: 3px solid #000;
+            box-sizing: border-box;
+            vertical-align: top;
+        }
+        .feedback.extraneous {
+            border: 3px dotted #000;
+        }
+        .feedback.missing {
+            background-color: transparent !important;
+            border: 3px solid #000;
+            color: #000;
+        }
+        .green { background-color: #6aaa64; color: white; }
+        .yellow { background-color: #c9b458; color: white; }
+        .gray { background-color: #787c7e; color: white; }
+        .win { color: #6aaa64; font-weight: bold; }
+        .lose { color: #787c7e; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .monospace {
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Spelling Evaluator Test Suite</h1>
+    <p>Testing the spelling evaluation algorithm with various target/guess word pairs.</p>
+    
+    <div id="results"></div>
+
+    <script>
+        /**
+         * Spelling Evaluator namespace containing all evaluation functions
+         */
+        const SpellingEvaluator = {
+            /**
+             * Marks length differences between guess and target words.
+             * Handles cases where guess is longer (extraneous letters) or shorter (missing letters) than target.
+             * @param {number} guessLength - Length of the guess word
+             * @param {number} targetLength - Length of the target word
+             * @param {Object} result - Result object containing feedback, extraneous, and missing arrays
+             * @private
+             */
+            _markLengthDifferences(guessLength, targetLength, result) {
+                if (guessLength > targetLength) {
+                    // Mark extra letters as extraneous
+                    for (let i = targetLength; i < guessLength; i++) {
+                        result.extraneous[i] = true;
+                    }
+                } else if (guessLength < targetLength) {
+                    // Mark missing positions
+                    for (let i = guessLength; i < targetLength; i++) {
+                        result.feedback[i] = 'missing';
+                        result.missing[i] = true;
+                    }
+                }
+            },
+
+            /**
+             * Processes exact position matches between guess and target (green letters).
+             * Only checks the overlapping portion of both words for character-by-character matches.
+             * @param {string} guess - The guessed word
+             * @param {string} target - The target word
+             * @param {Object} result - Result object containing the feedback array
+             * @param {boolean[]} targetUsed - Array tracking which target positions have been matched
+             * @param {boolean[]} guessUsed - Array tracking which guess positions have been matched
+             * @private
+             */
+            _processExactMatches(guess, target, result, targetUsed, guessUsed) {
+                const overlapLength = Math.min(guess.length, target.length);
+                
+                for (let i = 0; i < overlapLength; i++) {
+                    if (guess[i] === target[i]) {
+                        result.feedback[i] = 'green';
+                        targetUsed[i] = true;
+                        guessUsed[i] = true;
+                    }
+                }
+            },
+
+            /**
+             * Processes wrong position matches between guess and target (yellow letters).
+             * Finds letters that exist in target but are in wrong positions in guess.
+             * Only processes letters not already matched in exact positions.
+             * @param {string} guess - The guessed word
+             * @param {string} target - The target word
+             * @param {Object} result - Result object containing the feedback array
+             * @param {boolean[]} targetUsed - Array tracking which target positions have been matched
+             * @param {boolean[]} guessUsed - Array tracking which guess positions have been matched
+             * @private
+             */
+            _processWrongPositions(guess, target, result, targetUsed, guessUsed) {
+                for (let i = 0; i < guess.length; i++) {
+                    if (guessUsed[i]) continue; // Already matched as green
+                    
+                    for (let j = 0; j < target.length; j++) {
+                        if (!targetUsed[j] && guess[i] === target[j]) {
+                            result.feedback[i] = 'yellow';
+                            targetUsed[j] = true;
+                            guessUsed[i] = true;
+                            break; // Only match one occurrence
+                        }
+                    }
+                }
+            },
+
+            /**
+             * Evaluates a spelling guess against a target word.
+             * Returns an object with:
+             *   - feedback: array of 'green', 'yellow', 'gray', or 'missing'
+             *   - extraneous: array of booleans (true for extraneous letters)
+             *   - missing: array of booleans (true for missing letter positions)
+             * @param {string} guess - The word being guessed
+             * @param {string} target - The target word to match against
+             * @returns {Object} { feedback: string[], extraneous: boolean[], missing: boolean[] }
+             */
+            evaluate(guess, target) {
+                const guessLength = guess.length;
+                const targetLength = target.length;
+                const maxLength = Math.max(guessLength, targetLength);
+                
+                // Initialize result object and tracking arrays
+                const result = {
+                    feedback: Array(maxLength).fill('gray'),
+                    extraneous: Array(maxLength).fill(false),
+                    missing: Array(maxLength).fill(false)
+                };
+                
+                const targetUsed = Array(targetLength).fill(false);
+                const guessUsed = Array(guessLength).fill(false);
+
+                // Process evaluation in logical steps
+                this._markLengthDifferences(guessLength, targetLength, result);
+                this._processExactMatches(guess, target, result, targetUsed, guessUsed);
+                this._processWrongPositions(guess, target, result, targetUsed, guessUsed);
+
+                return result;
+            },
+
+            /**
+             * Checks if the guess is a win (exact match: case, length, content).
+             * @param {string} guess - The guessed word
+             * @param {string} target - The target word
+             * @returns {boolean} True if guess exactly matches target
+             */
+            isWin(guess, target) {
+                return guess === target;
+            }
+        };
+
+        // Test cases covering various scenarios
+        const testCases = [
+            // Perfect matches
+            { target: "HELLO", guess: "HELLO", description: "Perfect match - same word" },
+            { target: "CAT", guess: "CAT", description: "Perfect match - 3 letters" },
+            
+            // No matches
+            { target: "HELLO", guess: "WORLD", description: "No matching letters" },
+            { target: "ABC", guess: "XYZ", description: "Completely different letters" },
+            
+            // All yellow (letters exist but wrong positions)
+            { target: "HELLO", guess: "OLLEH", description: "All letters present, all wrong positions" },
+            { target: "CAT", guess: "TAC", description: "All letters swapped positions" },
+            
+            // Mixed green and yellow
+            { target: "HELLO", guess: "HALLO", description: "First letter correct, second wrong but exists" },
+            { target: "WORLD", guess: "WRLOD", description: "Some correct positions, some swapped" },
+            
+            // Duplicate letters in guess
+            { target: "HELLO", guess: "LLAMA", description: "Duplicate L's in guess, target has 2 L's" },
+            { target: "SPEED", guess: "EEEEE", description: "All same letter, target has 2 E's" },
+            { target: "APPLE", guess: "PLPPP", description: "Multiple P's in guess, target has 2 P's" },
+            
+            // Different lengths
+            { target: "HELLO", guess: "HI", description: "Guess shorter than target" },
+            { target: "CAT", guess: "CATCH", description: "Guess longer than target" },
+            { target: "A", guess: "APPLE", description: "Single letter target, long guess" },
+            { target: "TESTING", guess: "TEST", description: "Long target, short guess" },
+            
+            // Case sensitivity
+            { target: "Hello", guess: "HELLO", description: "Case mismatch - mixed vs uppercase" },
+            { target: "WORLD", guess: "world", description: "Case mismatch - uppercase vs lowercase" },
+            { target: "CaT", guess: "cAt", description: "Mixed case differences" },
+            
+            // Lowercase test cases
+            { target: "hello", guess: "hello", description: "Perfect match - lowercase" },
+            { target: "world", guess: "dlrow", description: "All letters present, wrong positions - lowercase" },
+            { target: "apple", guess: "pleas", description: "Some matching letters - lowercase" },
+            { target: "speed", guess: "eeeee", description: "All same letter, target has duplicates - lowercase" },
+            { target: "cat", guess: "dog", description: "No matching letters - lowercase" },
+            { target: "test", guess: "testing", description: "Guess longer than target - lowercase" },
+            { target: "programming", guess: "prog", description: "Long target, short guess - lowercase" },
+            { target: "book", guess: "kooB", description: "Mixed case with reversal" },
+            
+            // Mixed case test cases
+            { target: "JavaScript", guess: "JavaScript", description: "Perfect match - mixed case" },
+            { target: "PyThOn", guess: "nOhTyP", description: "All letters present, wrong positions - mixed case" },
+            { target: "CamelCase", guess: "camelcase", description: "Case differences throughout" },
+            { target: "iPhone", guess: "IPHONE", description: "Mixed to uppercase conversion" },
+            { target: "aBc", guess: "CbA", description: "Mixed case reversal" },
+            { target: "HTML", guess: "html", description: "Uppercase target, lowercase guess" },
+            { target: "mIxEd", guess: "MiXeD", description: "Opposite case pattern" },
+            { target: "React", guess: "react", description: "Capitalized vs lowercase" },
+            
+            // Edge cases
+            { target: "", guess: "", description: "Both empty strings" },
+            { target: "A", guess: "A", description: "Single character match" },
+            { target: "A", guess: "B", description: "Single character no match" },
+            { target: "AA", guess: "A", description: "Target has duplicates, guess doesn't" },
+            { target: "ABCDE", guess: "EDCBA", description: "Complete reversal" }
+        ];
+
+        function renderFeedback(result, guess, target) {
+            const { feedback, extraneous, missing } = result;
+            return feedback.map((color, i) => {
+                const extraneousClass = extraneous[i] ? ' extraneous' : '';
+                const missingClass = missing[i] ? ' missing' : '';
+                const displayChar = missing[i] ? '' : (guess[i] || '?');
+                return `<span class="feedback ${color}${extraneousClass}${missingClass}">${displayChar}</span>`;
+            }).join('');
+        }
+
+        function runTests() {
+            const resultsDiv = document.getElementById('results');
+            let html = '<table><thead><tr><th>Target</th><th>Guess</th><th>Feedback</th><th>Win?</th><th>Description</th></tr></thead><tbody>';
+            
+            testCases.forEach((testCase, index) => {
+                const { target, guess, description } = testCase;
+                const result = SpellingEvaluator.evaluate(guess, target);
+                const win = SpellingEvaluator.isWin(guess, target);
+                
+                html += `
+                    <tr>
+                        <td class="monospace">"${target}"</td>
+                        <td class="monospace">"${guess}"</td>
+                        <td>${renderFeedback(result, guess, target)}</td>
+                        <td class="${win ? 'win' : 'lose'}">${win ? 'YES' : 'NO'}</td>
+                        <td>${description}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            resultsDiv.innerHTML = html;
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>
