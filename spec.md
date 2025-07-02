@@ -56,10 +56,10 @@ Hardcoded array of 12 words with example sentences:
    - Green: correct letter, correct position
    - Yellow: correct letter, wrong position  
    - Gray: incorrect letter
-   - Extraneous letters: colored background with dotted outline
-   - Missing letters: empty boxes with solid outline
+   - Extraneous letters: colored background with dotted light gray outline
+   - Missing letters: empty boxes with solid light gray outline
 3. Below feedback row, show new input row:
-   - Individual input fields (one per target word letter)
+   - Individual input fields (one per target word letter) with light gray borders
    - Sequential left-to-right input only
    - Auto-focus moves to next box as letters entered
    - Prevent submission with incorrect letter count
@@ -77,7 +77,7 @@ Hardcoded array of 12 words with example sentences:
 - Letter boxes styled similar to `test_spelling_evaluator.html`
 
 ### Letter Boxes
-- Square dimensions
+- Square dimensions with light gray borders (#d3d6da)
 - Uniform sizing with proper spacing between boxes and rows
 - Sharp corners
 - Grid alignment (boxes align vertically and horizontally)

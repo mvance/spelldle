@@ -132,16 +132,16 @@ Requirements:
 - Create CSS classes for letter boxes matching the test file styling:
   - Square boxes with proper dimensions
   - Green, yellow, gray backgrounds
-  - Solid black borders for normal letters
-  - Dotted borders for extraneous letters
-  - Empty boxes with solid borders for missing letters
+  - Solid light gray borders for normal letters (#d3d6da)
+  - Dotted light gray borders for extraneous letters
+  - Empty boxes with solid light gray borders for missing letters
 - Add function to render feedback boxes from SpellingEvaluator results
 - Display the user's incorrect guess as colored feedback boxes
-- Handle extraneous letters (dotted outline) and missing letters (empty boxes)
+- Handle extraneous letters (dotted light gray outline) and missing letters (empty boxes)
 - Ensure boxes align in a grid layout
 - Position feedback row above where the new input will go
 
-When a user makes an incorrect initial guess, the game should now display their guess as colored Wordle-style boxes showing which letters were correct, wrong position, or not in the word.
+When a user makes an incorrect initial guess, the game should now display their guess as colored Wordle-style boxes with light gray borders showing which letters were correct, wrong position, or not in the word.
 ```
 
 ## Step 8: Clue Phase Input System

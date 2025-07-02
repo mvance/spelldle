@@ -99,16 +99,16 @@
 - [ ] Create CSS classes for letter boxes:
   - [ ] Square boxes with proper dimensions
   - [ ] Green, yellow, gray backgrounds
-  - [ ] Solid black borders for normal letters
-  - [ ] Dotted borders for extraneous letters
-  - [ ] Empty boxes with solid borders for missing letters
+  - [ ] Solid light gray borders for normal letters (#d3d6da)
+  - [ ] Dotted light gray borders for extraneous letters
+  - [ ] Empty boxes with solid light gray borders for missing letters
 - [ ] Add function to render feedback boxes from SpellingEvaluator results
 - [ ] Display user's incorrect guess as colored feedback boxes
-- [ ] Handle extraneous letters (dotted outline)
+- [ ] Handle extraneous letters (dotted light gray outline)
 - [ ] Handle missing letters (empty boxes)
 - [ ] Ensure boxes align in grid layout
 - [ ] Position feedback row above input area
-- [ ] Test: Feedback boxes display correctly with proper colors and styling
+- [ ] Test: Feedback boxes display correctly with proper colors and light gray borders
 
 ## Step 8: Clue Phase Input System
 - [ ] Create individual input fields (one per target word letter)
