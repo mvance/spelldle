@@ -231,10 +231,17 @@
             width: 100%;
         }
 
+        .feedback-rows-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
         .feedback-row {
             display: flex;
             gap: 5px;
-            justify-content: center;
+            justify-content: flex-start;
             margin: 5px 0;
         }
 
@@ -841,6 +848,14 @@
             const container = document.getElementById('cluePhaseContainer');
             container.style.display = 'flex';
             
+            // Create wrapper for feedback rows if it doesn't exist
+            let wrapper = container.querySelector('.feedback-rows-wrapper');
+            if (!wrapper) {
+                wrapper = document.createElement('div');
+                wrapper.className = 'feedback-rows-wrapper';
+                container.appendChild(wrapper);
+            }
+            
             // Evaluate the guess using SpellingEvaluator
             const evaluation = SpellingEvaluator.evaluate(guess, gameState.currentWord);
             console.log('Evaluation result:', evaluation);
@@ -850,17 +865,17 @@
             feedbackRow.className = 'feedback-row';
             feedbackRow.innerHTML = renderFeedbackBoxes(guess, gameState.currentWord, evaluation);
             
-            // Add the feedback row to the container
-            container.appendChild(feedbackRow);
+            // Add the feedback row to the wrapper
+            wrapper.appendChild(feedbackRow);
             
             // Add input row for next guess
-            addInputRow(container);
+            addInputRow(wrapper);
             
             console.log(`Displayed feedback for guess: "${guess}" vs target: "${gameState.currentWord}"`);
         }
 
         // Add input row with individual letter boxes
-        function addInputRow(container) {
+        function addInputRow(wrapper) {
             const inputRowContainer = document.createElement('div');
             inputRowContainer.className = 'input-row-container';
             
@@ -890,7 +905,7 @@
             submitButton.onclick = submitClueGuess;
             inputRowContainer.appendChild(submitButton);
             
-            container.appendChild(inputRowContainer);
+            wrapper.appendChild(inputRowContainer);
             
             // Auto-focus first input box after a brief delay
             const firstInput = inputRow.querySelector('.letter-input');
@@ -975,7 +990,8 @@
         // Submit clue phase guess
         function submitClueGuess() {
             const container = document.getElementById('cluePhaseContainer');
-            const lastInputRow = container.querySelector('.input-row-container:last-child .input-row-clue');
+            const wrapper = container.querySelector('.feedback-rows-wrapper');
+            const lastInputRow = wrapper.querySelector('.input-row-container:last-child .input-row-clue');
             const inputs = lastInputRow.querySelectorAll('.letter-input');
             
             // Collect letters from input boxes
@@ -1017,9 +1033,10 @@
             console.log(`Incorrect clue guess: "${guess}"`);
             
             const container = document.getElementById('cluePhaseContainer');
+            const wrapper = container.querySelector('.feedback-rows-wrapper');
             
             // Remove the current input row before adding feedback
-            const currentInputContainer = container.querySelector('.input-row-container:last-child');
+            const currentInputContainer = wrapper.querySelector('.input-row-container:last-child');
             if (currentInputContainer) {
                 currentInputContainer.remove();
             }
@@ -1033,11 +1050,11 @@
             feedbackRow.className = 'feedback-row';
             feedbackRow.innerHTML = renderFeedbackBoxes(guess, gameState.currentWord, evaluation);
             
-            // Add the feedback row to the container
-            container.appendChild(feedbackRow);
+            // Add the feedback row to the wrapper
+            wrapper.appendChild(feedbackRow);
             
             // Add new input row for next attempt with cleared boxes
-            addInputRow(container);
+            addInputRow(wrapper);
         }
 
         // Disable inputs during transitions
