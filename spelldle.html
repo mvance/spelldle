@@ -1421,25 +1421,8 @@ Lesson 12,eyes,My eyes are tired.`;
 
         // Handle input changes for case handling
         function handleInputChange(event) {
-            const input = event.target;
-            const value = input.value;
-            
             // Clear any validation messages when user starts typing
             clearValidationMessage();
-            
-            // Convert to lowercase unless Caps Lock or Shift is engaged
-            try {
-                if (!event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift'))) {
-                    // Only convert if the last character added was uppercase
-                    const lastChar = value.slice(-1);
-                    if (lastChar && lastChar === lastChar.toUpperCase() && lastChar !== lastChar.toLowerCase()) {
-                        input.value = value.slice(0, -1) + lastChar.toLowerCase();
-                    }
-                }
-            } catch (error) {
-                // Fallback for browsers that don't support getModifierState
-                console.log('getModifierState not supported, using fallback');
-            }
         }
 
         // Show validation message
@@ -1641,22 +1624,6 @@ Lesson 12,eyes,My eyes are tired.`;
             if (value.length > 1) {
                 value = value.slice(-1);
                 input.value = value;
-            }
-            
-            // Convert to lowercase unless Caps Lock or Shift is engaged
-            try {
-                if (value && (!event.getModifierState || (!event.getModifierState('CapsLock') && !event.getModifierState('Shift')))) {
-                    if (value === value.toUpperCase() && value !== value.toLowerCase()) {
-                        input.value = value.toLowerCase();
-                        value = value.toLowerCase();
-                    }
-                }
-            } catch (error) {
-                // Fallback for browsers that don't support getModifierState
-                if (value && value === value.toUpperCase() && value !== value.toLowerCase()) {
-                    input.value = value.toLowerCase();
-                    value = value.toLowerCase();
-                }
             }
             
             // Move to next box if letter was entered
