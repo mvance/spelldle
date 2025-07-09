@@ -1191,6 +1191,51 @@ Lesson 12,eyes,My eyes are tired.`;
             }
         }
 
+        // LocalStorage functions for spelling attempts
+        function saveSpellingAttempt(guess, isCorrect) {
+            try {
+                const attempt = {
+                    user_email: null, // No user-specific tracking for now
+                    timestamp: new Date().toISOString(),
+                    lesson_name: gameState.currentLesson || 'Fallback Word List',
+                    word_target: gameState.currentWord,
+                    spelling_guess: guess,
+                    result: isCorrect ? 'correct' : 'incorrect'
+                };
+
+                // Get existing attempts from localStorage
+                const existingAttempts = JSON.parse(localStorage.getItem('spelldle_attempts') || '[]');
+                
+                // Add new attempt
+                existingAttempts.push(attempt);
+                
+                // Save back to localStorage
+                localStorage.setItem('spelldle_attempts', JSON.stringify(existingAttempts));
+                
+                console.log('Saved spelling attempt:', attempt);
+            } catch (error) {
+                console.error('Failed to save spelling attempt:', error);
+            }
+        }
+
+        function getSpellingAttempts() {
+            try {
+                return JSON.parse(localStorage.getItem('spelldle_attempts') || '[]');
+            } catch (error) {
+                console.error('Failed to retrieve spelling attempts:', error);
+                return [];
+            }
+        }
+
+        function clearSpellingAttempts() {
+            try {
+                localStorage.removeItem('spelldle_attempts');
+                console.log('Cleared all spelling attempts');
+            } catch (error) {
+                console.error('Failed to clear spelling attempts:', error);
+            }
+        }
+
         /**
          * Spelling Evaluator namespace containing all evaluation functions
          */
@@ -1465,6 +1510,13 @@ Lesson 12,eyes,My eyes are tired.`;
         function handleCorrectGuess() {
             console.log('Correct guess!');
             
+            // Get the current guess from input
+            const input = document.getElementById('guessInput');
+            const guess = input ? input.value.trim() : gameState.currentWord;
+            
+            // Save spelling attempt to localStorage
+            saveSpellingAttempt(guess, true);
+            
             // Track the guess for lesson stats
             trackGuess(true);
             
@@ -1483,6 +1535,9 @@ Lesson 12,eyes,My eyes are tired.`;
         // Handle incorrect guess
         function handleIncorrectGuess(guess) {
             console.log(`Incorrect guess: "${guess}"`);
+            
+            // Save spelling attempt to localStorage
+            saveSpellingAttempt(guess, false);
             
             // Track the guess for lesson stats
             trackGuess(false);
@@ -1701,6 +1756,8 @@ Lesson 12,eyes,My eyes are tired.`;
             
             // Check if guess is correct
             if (guess === gameState.currentWord) {
+                // Save correct spelling attempt to localStorage
+                saveSpellingAttempt(guess, true);
                 // Correct guess - play "Correct!" and advance to next word
                 handleCorrectGuess();
             } else {
@@ -1712,6 +1769,9 @@ Lesson 12,eyes,My eyes are tired.`;
         // Handle incorrect guess in clue phase
         function handleIncorrectClueGuess(guess) {
             console.log(`Incorrect clue guess: "${guess}"`);
+            
+            // Save spelling attempt to localStorage
+            saveSpellingAttempt(guess, false);
             
             // Track the guess for lesson stats
             trackGuess(false);
@@ -1962,6 +2022,10 @@ Lesson 12,eyes,My eyes are tired.`;
                     console.log('SpellingEvaluator.evaluate("hello", "world"):', testResult);
                     console.log('SpellingEvaluator.isWin("friend", "friend"):', SpellingEvaluator.isWin('friend', 'friend'));
                     console.log('SpellingEvaluator.isWin("friend", "fiend"):', SpellingEvaluator.isWin('friend', 'fiend'));
+                    
+                    // Test localStorage functions
+                    console.log('Testing localStorage functions:');
+                    console.log('Current attempts count:', getSpellingAttempts().length);
                 }
             } catch (error) {
                 console.error('Error during page initialization:', error);
