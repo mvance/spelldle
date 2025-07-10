@@ -1874,11 +1874,11 @@ tutoring,determination,With determination you can achieve your goals.`;
                 // Show green feedback for correct guess
                 showCorrectGuessFeedback(guess);
                 
-                // Correct guess in clue phase - go to reinforcement phase
+                // Show reinforcement phase immediately
+                showReinforcementPhase();
+                
+                // Start TTS announcement in parallel
                 speakReinforcementAnnouncement();
-                setTimeout(() => {
-                    showReinforcementPhase();
-                }, 3000); // Longer delay for the announcement
             } else {
                 // Incorrect guess - add new feedback row and input row
                 handleIncorrectClueGuess(guess);
