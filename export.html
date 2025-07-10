@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelldle Data Export</title>
+    <style>
+        /* Color scheme variables */
+        :root {
+            --green: #6aaa64;
+            --yellow: #c9b458;
+            --gray: #787c7e;
+            --blue: #5a9fd4;
+            --dark-bg: #121213;
+            --dark-text: #ffffff;
+            --dark-border: #3a3a3c;
+        }
+
+        /* Dark theme styling */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--blue);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .stats-section {
+            background-color: #2a2a2a;
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--blue);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .export-section {
+            background-color: #2a2a2a;
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background-color: var(--blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #4a8fc4;
+        }
+
+        .btn:active {
+            background-color: #3a7fb4;
+        }
+
+        .btn.danger {
+            background-color: #d73a49;
+        }
+
+        .btn.danger:hover {
+            background-color: #c62d3a;
+        }
+
+        .export-textarea {
+            width: 100%;
+            height: 400px;
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            border: 2px solid var(--dark-border);
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        .export-textarea:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        .instructions {
+            background-color: #1a3a5c;
+            border: 1px solid var(--blue);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            color: var(--blue);
+            margin-top: 0;
+        }
+
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+
+        .filter-section {
+            background-color: #2a2a2a;
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .filter-group label {
+            font-weight: bold;
+            min-width: 100px;
+        }
+
+        .filter-input {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            border: 2px solid var(--dark-border);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background-color: rgba(106, 170, 100, 0.2);
+            border: 1px solid var(--green);
+            color: var(--green);
+        }
+
+        .status-error {
+            background-color: rgba(215, 58, 73, 0.2);
+            border: 1px solid #d73a49;
+            color: #ff6b7a;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .filter-group label {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Spelldle Data Export</h1>
+        
+        <!-- Statistics Section -->
+        <div class="stats-section">
+            <h2>Data Summary</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalAttempts">0</div>
+                    <div class="stat-label">Total Attempts</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="correctAttempts">0</div>
+                    <div class="stat-label">Correct</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="incorrectAttempts">0</div>
+                    <div class="stat-label">Incorrect</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="accuracyRate">0%</div>
+                    <div class="stat-label">Accuracy</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="uniqueLessons">0</div>
+                    <div class="stat-label">Lessons</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="dateRange">-</div>
+                    <div class="stat-label">Date Range</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h2>Filter Data</h2>
+            <div class="filter-group">
+                <label for="lessonFilter">Lesson:</label>
+                <select id="lessonFilter" class="filter-input">
+                    <option value="">All Lessons</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="resultFilter">Result:</label>
+                <select id="resultFilter" class="filter-input">
+                    <option value="">All Results</option>
+                    <option value="correct">Correct Only</option>
+                    <option value="incorrect">Incorrect Only</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="dateFromFilter">From Date:</label>
+                <input type="date" id="dateFromFilter" class="filter-input">
+            </div>
+            <div class="filter-group">
+                <label for="dateToFilter">To Date:</label>
+                <input type="date" id="dateToFilter" class="filter-input">
+            </div>
+            <div class="filter-group">
+                <button class="btn" onclick="applyFilters()">Apply Filters</button>
+                <button class="btn" onclick="clearFilters()">Clear Filters</button>
+            </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="export-section">
+            <h2>Export Data</h2>
+            
+            <div class="instructions">
+                <h3>How to use:</h3>
+                <ol>
+                    <li>Click "Generate Excel Format" to create tab-separated data</li>
+                    <li>Click "Select All" to select all the text in the box below</li>
+                    <li>Copy the selected text (Ctrl+C or Cmd+C)</li>
+                    <li>Open Excel and paste (Ctrl+V or Cmd+V) - Excel will automatically separate the columns</li>
+                    <li>Alternatively, use "Download CSV" to save as a file</li>
+                </ol>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="generateExcelFormat()">Generate Excel Format</button>
+                <button class="btn" onclick="selectAllText()">Select All</button>
+                <button class="btn" onclick="downloadCSV()">Download CSV</button>
+                <button class="btn" onclick="refreshData()">Refresh Data</button>
+                <button class="btn danger" onclick="clearAllData()">Clear All Data</button>
+            </div>
+
+            <div id="statusMessage"></div>
+
+            <textarea id="exportData" class="export-textarea" readonly placeholder="Click 'Generate Excel Format' to see your data here..."></textarea>
+        </div>
+
+        <!-- Raw Data Section -->
+        <div class="export-section">
+            <h2>Raw JSON Data</h2>
+            <div class="button-group">
+                <button class="btn" onclick="showRawData()">Show Raw JSON</button>
+                <button class="btn" onclick="downloadJSON()">Download JSON</button>
+            </div>
+            <textarea id="rawData" class="export-textarea" readonly placeholder="Click 'Show Raw JSON' to see the raw data..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        let allAttempts = [];
+        let filteredAttempts = [];
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            populateLessonFilter();
+        });
+
+        // Load spelling attempts from localStorage
+        function loadData() {
+            try {
+                allAttempts = JSON.parse(localStorage.getItem('spelldle_attempts') || '[]');
+                filteredAttempts = [...allAttempts];
+                updateStatistics();
+                showStatus('Data loaded successfully', 'success');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showStatus('Error loading data: ' + error.message, 'error');
+                allAttempts = [];
+                filteredAttempts = [];
+            }
+        }
+
+        // Update statistics display
+        function updateStatistics() {
+            const total = filteredAttempts.length;
+            const correct = filteredAttempts.filter(a => a.result === 'correct').length;
+            const incorrect = total - correct;
+            const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+            
+            const lessons = [...new Set(filteredAttempts.map(a => a.lesson_name).filter(Boolean))];
+            const dates = filteredAttempts.map(a => new Date(a.timestamp)).filter(d => !isNaN(d));
+            
+            let dateRange = '-';
+            if (dates.length > 0) {
+                const minDate = new Date(Math.min(...dates));
+                const maxDate = new Date(Math.max(...dates));
+                if (dates.length === 1) {
+                    dateRange = minDate.toLocaleDateString();
+                } else {
+                    dateRange = `${minDate.toLocaleDateString()} - ${maxDate.toLocaleDateString()}`;
+                }
+            }
+
+            document.getElementById('totalAttempts').textContent = total;
+            document.getElementById('correctAttempts').textContent = correct;
+            document.getElementById('incorrectAttempts').textContent = incorrect;
+            document.getElementById('accuracyRate').textContent = accuracy + '%';
+            document.getElementById('uniqueLessons').textContent = lessons.length;
+            document.getElementById('dateRange').textContent = dateRange;
+        }
+
+        // Populate lesson filter dropdown
+        function populateLessonFilter() {
+            const lessonFilter = document.getElementById('lessonFilter');
+            const lessons = [...new Set(allAttempts.map(a => a.lesson_name).filter(Boolean))].sort();
+            
+            // Clear existing options except "All Lessons"
+            lessonFilter.innerHTML = '<option value="">All Lessons</option>';
+            
+            lessons.forEach(lesson => {
+                const option = document.createElement('option');
+                option.value = lesson;
+                option.textContent = lesson;
+                lessonFilter.appendChild(option);
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const lessonFilter = document.getElementById('lessonFilter').value;
+            const resultFilter = document.getElementById('resultFilter').value;
+            const dateFromFilter = document.getElementById('dateFromFilter').value;
+            const dateToFilter = document.getElementById('dateToFilter').value;
+
+            filteredAttempts = allAttempts.filter(attempt => {
+                // Lesson filter
+                if (lessonFilter && attempt.lesson_name !== lessonFilter) {
+                    return false;
+                }
+
+                // Result filter
+                if (resultFilter && attempt.result !== resultFilter) {
+                    return false;
+                }
+
+                // Date filters
+                const attemptDate = new Date(attempt.timestamp);
+                if (dateFromFilter) {
+                    const fromDate = new Date(dateFromFilter);
+                    if (attemptDate < fromDate) {
+                        return false;
+                    }
+                }
+                if (dateToFilter) {
+                    const toDate = new Date(dateToFilter + 'T23:59:59');
+                    if (attemptDate > toDate) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            updateStatistics();
+            showStatus(`Filters applied. Showing ${filteredAttempts.length} of ${allAttempts.length} attempts.`, 'success');
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('lessonFilter').value = '';
+            document.getElementById('resultFilter').value = '';
+            document.getElementById('dateFromFilter').value = '';
+            document.getElementById('dateToFilter').value = '';
+            
+            filteredAttempts = [...allAttempts];
+            updateStatistics();
+            showStatus('Filters cleared', 'success');
+        }
+
+        // Generate Excel-compatible format (tab-separated)
+        function generateExcelFormat() {
+            if (filteredAttempts.length === 0) {
+                showStatus('No data to export', 'error');
+                return;
+            }
+
+            try {
+                // Headers
+                const headers = ['User Email', 'Timestamp', 'Lesson Name', 'Target Word', 'Spelling Guess', 'Result'];
+                
+                // Data rows
+                const rows = filteredAttempts.map(attempt => [
+                    attempt.user_email || '',
+                    attempt.timestamp || '',
+                    attempt.lesson_name || '',
+                    attempt.word_target || '',
+                    attempt.spelling_guess || '',
+                    attempt.result || ''
+                ]);
+
+                // Combine headers and rows, join with tabs
+                const tsvData = [headers, ...rows]
+                    .map(row => row.join('\t'))
+                    .join('\n');
+
+                document.getElementById('exportData').value = tsvData;
+                showStatus(`Generated Excel format for ${filteredAttempts.length} attempts`, 'success');
+            } catch (error) {
+                console.error('Error generating Excel format:', error);
+                showStatus('Error generating Excel format: ' + error.message, 'error');
+            }
+        }
+
+        // Select all text in the export textarea
+        function selectAllText() {
+            const textarea = document.getElementById('exportData');
+            if (textarea.value.trim() === '') {
+                showStatus('No data to select. Generate Excel format first.', 'error');
+                return;
+            }
+            
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            showStatus('Text selected. Press Ctrl+C (or Cmd+C) to copy.', 'success');
+        }
+
+        // Download as CSV file
+        function downloadCSV() {
+            if (filteredAttempts.length === 0) {
+                showStatus('No data to download', 'error');
+                return;
+            }
+
+            try {
+                // Generate CSV content
+                const headers = ['user_email', 'timestamp', 'lesson_name', 'word_target', 'spelling_guess', 'result'];
+                
+                const csvContent = [
+                    headers.join(','),
+                    ...filteredAttempts.map(attempt => 
+                        headers.map(header => {
+                            const value = attempt[header] || '';
+                            // Escape quotes and wrap in quotes if contains comma, quote, or newline
+                            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                                return '"' + value.replace(/"/g, '""') + '"';
+                            }
+                            return value;
+                        }).join(',')
+                    )
+                ].join('\n');
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `spelldle_attempts_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showStatus(`Downloaded CSV file with ${filteredAttempts.length} attempts`, 'success');
+            } catch (error) {
+                console.error('Error downloading CSV:', error);
+                showStatus('Error downloading CSV: ' + error.message, 'error');
+            }
+        }
+
+        // Show raw JSON data
+        function showRawData() {
+            try {
+                const jsonData = JSON.stringify(filteredAttempts, null, 2);
+                document.getElementById('rawData').value = jsonData;
+                showStatus(`Showing raw JSON for ${filteredAttempts.length} attempts`, 'success');
+            } catch (error) {
+                console.error('Error showing raw data:', error);
+                showStatus('Error showing raw data: ' + error.message, 'error');
+            }
+        }
+
+        // Download as JSON file
+        function downloadJSON() {
+            if (filteredAttempts.length === 0) {
+                showStatus('No data to download', 'error');
+                return;
+            }
+
+            try {
+                const jsonContent = JSON.stringify(filteredAttempts, null, 2);
+                const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `spelldle_attempts_${new Date().toISOString().split('T')[0]}.json`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showStatus(`Downloaded JSON file with ${filteredAttempts.length} attempts`, 'success');
+            } catch (error) {
+                console.error('Error downloading JSON:', error);
+                showStatus('Error downloading JSON: ' + error.message, 'error');
+            }
+        }
+
+        // Refresh data from localStorage
+        function refreshData() {
+            loadData();
+            populateLessonFilter();
+            clearFilters();
+            document.getElementById('exportData').value = '';
+            document.getElementById('rawData').value = '';
+            showStatus('Data refreshed from localStorage', 'success');
+        }
+
+        // Clear all data from localStorage
+        function clearAllData() {
+            if (confirm('Are you sure you want to delete ALL spelling attempt data? This cannot be undone.')) {
+                try {
+                    localStorage.removeItem('spelldle_attempts');
+                    allAttempts = [];
+                    filteredAttempts = [];
+                    updateStatistics();
+                    populateLessonFilter();
+                    document.getElementById('exportData').value = '';
+                    document.getElementById('rawData').value = '';
+                    showStatus('All data cleared from localStorage', 'success');
+                } catch (error) {
+                    console.error('Error clearing data:', error);
+                    showStatus('Error clearing data: ' + error.message, 'error');
+                }
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message status-${type}`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.textContent = '';
+                statusDiv.className = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
