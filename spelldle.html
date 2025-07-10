@@ -6,6 +6,8 @@
     <title>Spelldle</title>
     <!-- Papa Parse CDN -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <style>
         /* CSS Reset */
         * {
@@ -1528,6 +1530,56 @@ tutoring,determination,With determination you can achieve your goals.`;
             synth.speak(correctUtterance);
         }
 
+        // Create realistic confetti effect using canvas-confetti
+        function createRealisticConfetti() {
+            if (typeof confetti === 'undefined') {
+                console.warn('Canvas confetti library not loaded');
+                return;
+            }
+
+            const count = 200;
+            const defaults = {
+                origin: { y: 0.7 },
+                colors: ['#6aaa64', '#5a9fd4'] // Using existing green and blue colors
+            };
+
+            function fire(particleRatio, opts) {
+                confetti({
+                    ...defaults,
+                    ...opts,
+                    particleCount: Math.floor(count * particleRatio)
+                });
+            }
+
+            // Multiple bursts with different characteristics for realistic effect
+            fire(0.25, {
+                spread: 26,
+                startVelocity: 55,
+            });
+
+            fire(0.2, {
+                spread: 60,
+            });
+
+            fire(0.35, {
+                spread: 100,
+                decay: 0.91,
+                scalar: 0.8
+            });
+
+            fire(0.1, {
+                spread: 120,
+                startVelocity: 25,
+                decay: 0.92,
+                scalar: 1.2
+            });
+
+            fire(0.1, {
+                spread: 120,
+                startVelocity: 45,
+            });
+        }
+
         // Speak reinforcement announcement with spelling
         function speakReinforcementAnnouncement() {
             if (!ttsSupported || !gameState.currentWord) return;
@@ -1629,7 +1681,8 @@ tutoring,determination,With determination you can achieve your goals.`;
                     showReinforcementPhase();
                 }, 1500);
             } else {
-                // Direct correct guess - play "Correct!" and advance
+                // Direct correct guess on first try - show confetti, play "Correct!", and advance
+                createRealisticConfetti();
                 speakCorrect();
                 setTimeout(() => {
                     advanceToNextWord();
