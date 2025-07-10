@@ -343,65 +343,6 @@
             opacity: 0.6;
         }
 
-        /* Reinforcement phase styling */
-        .reinforcement-phase-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            margin: 20px 0;
-            width: 100%;
-        }
-
-        .reinforcement-message {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--green);
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .reinforcement-instruction {
-            font-size: 16px;
-            color: var(--dark-text);
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .reinforcement-input-row {
-            display: flex;
-            gap: 5px;
-            justify-content: center;
-            margin: 10px 0;
-        }
-
-        .reinforcement-submit-button {
-            background-color: var(--green);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 15px;
-        }
-
-        .reinforcement-submit-button:hover {
-            background-color: #5a9a54;
-        }
-
-        .reinforcement-submit-button:active {
-            background-color: #4a8a44;
-        }
-
-        .reinforcement-submit-button:disabled {
-            background-color: #4a4a4a;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
         /* Responsive design */
         @media (max-width: 768px) {
             body {
@@ -650,15 +591,6 @@
         
         <div class="clue-phase-container" id="cluePhaseContainer" style="display: none;">
             <!-- Feedback rows will be dynamically added here -->
-        </div>
-        
-        <div class="reinforcement-phase-container" id="reinforcementPhaseContainer" style="display: none;">
-            <div class="reinforcement-message">Correct!</div>
-            <div class="reinforcement-instruction" id="reinforcementInstruction">Practice typing it one more time.</div>
-            <div class="reinforcement-input-row" id="reinforcementInputRow">
-                <!-- Letter inputs will be dynamically added here -->
-            </div>
-            <button class="reinforcement-submit-button" id="reinforcementSubmitButton" onclick="submitReinforcementGuess()">Continue</button>
         </div>
         
         <div class="game-complete-container" id="gameCompleteContainer" style="display: none;">
@@ -973,7 +905,7 @@ tutoring,determination,With determination you can achieve your goals.`;
         // Game state variables
         const gameState = {
             currentWordIndex: 0,
-            currentPhase: 'initial', // 'initial', 'clue', or 'reinforcement'
+            currentPhase: 'initial', // 'initial' or 'clue'
             totalWords: 0,
             currentWord: null,
             currentSentence: null,
@@ -982,8 +914,7 @@ tutoring,determination,With determination you can achieve your goals.`;
             currentLessonWords: [],
             correctGuesses: 0,
             totalGuesses: 0,
-            lessonStartTime: null,
-            hadIncorrectGuess: false // Track if user made incorrect guess in initial phase
+            lessonStartTime: null
         };
 
         // Text-to-speech variables
@@ -1252,12 +1183,10 @@ tutoring,determination,With determination you can achieve your goals.`;
             gameState.currentLessonWords = [];
             gameState.gameStarted = false;
             gameState.currentWordIndex = 0;
-            gameState.hadIncorrectGuess = false;
             
             // Hide all game elements
             hideInitialGuessInput();
             hideCluePhase();
-            hideReinforcementPhase();
             document.getElementById('gameCompleteContainer').style.display = 'none';
             document.getElementById('audioControls').style.display = 'none';
             document.getElementById('progressCounter').style.display = 'none';
@@ -1562,31 +1491,6 @@ tutoring,determination,With determination you can achieve your goals.`;
             synth.speak(correctUtterance);
         }
 
-        // Speak reinforcement announcement with spelling
-        function speakReinforcementAnnouncement() {
-            if (!ttsSupported || !gameState.currentWord) return;
-            
-            // Create spelled-out version of the word
-            const spelledWord = gameState.currentWord.split('').join(' ').toUpperCase();
-            const announcement = `Correct! ${gameState.currentWord} is spelled ${spelledWord}. Practice typing it one more time.`;
-            
-            const utterance = new SpeechSynthesisUtterance(announcement);
-            utterance.rate = 0.9; // Slightly slower for clarity
-            utterance.pitch = 1.0;
-            utterance.volume = 1.0;
-            
-            utterance.onerror = function(event) {
-                console.error('Speech synthesis error:', event.error);
-            };
-            
-            if (synth.speaking) {
-                synth.cancel();
-            }
-            
-            synth.speak(utterance);
-            console.log(`Speaking reinforcement: ${announcement}`);
-        }
-
         // Handle input field keydown events
         function handleInputKeydown(event) {
             if (event.key === 'Enter') {
@@ -1655,28 +1559,18 @@ tutoring,determination,With determination you can achieve your goals.`;
             // Disable input during transition
             disableInputs();
             
-            // Check if user had incorrect guess - if so, go to reinforcement phase
-            if (gameState.hadIncorrectGuess) {
-                // Play "Correct!" and transition to reinforcement phase
-                speakCorrect();
-                setTimeout(() => {
-                    showReinforcementPhase();
-                }, 1500);
-            } else {
-                // Direct correct guess - play "Correct!" and advance
-                speakCorrect();
-                setTimeout(() => {
-                    advanceToNextWord();
-                }, 1500);
-            }
+            // Play "Correct!" via text-to-speech
+            speakCorrect();
+            
+            // Advance to next word after brief delay
+            setTimeout(() => {
+                advanceToNextWord();
+            }, 1500); // 1.5 second delay to let "Correct!" play
         }
 
         // Handle incorrect guess
         function handleIncorrectGuess(guess) {
             console.log(`Incorrect guess: "${guess}"`);
-            
-            // Mark that user had an incorrect guess
-            gameState.hadIncorrectGuess = true;
             
             // Save spelling attempt to localStorage
             saveSpellingAttempt(guess, false);
@@ -1900,15 +1794,8 @@ tutoring,determination,With determination you can achieve your goals.`;
             if (guess === gameState.currentWord) {
                 // Save correct spelling attempt to localStorage
                 saveSpellingAttempt(guess, true);
-                // Track the guess for lesson stats
-                trackGuess(true);
-                // Disable inputs during transition
-                disableInputs();
-                // Correct guess in clue phase - go to reinforcement phase
-                speakCorrect();
-                setTimeout(() => {
-                    showReinforcementPhase();
-                }, 1500);
+                // Correct guess - play "Correct!" and advance to next word
+                handleCorrectGuess();
             } else {
                 // Incorrect guess - add new feedback row and input row
                 handleIncorrectClueGuess(guess);
@@ -1984,149 +1871,6 @@ tutoring,determination,With determination you can achieve your goals.`;
             container.innerHTML = '';
         }
 
-        // Show reinforcement phase
-        function showReinforcementPhase() {
-            console.log('Showing reinforcement phase');
-            gameState.currentPhase = 'reinforcement';
-            
-            // Hide other phases
-            hideInitialGuessInput();
-            hideCluePhase();
-            
-            // Show reinforcement container
-            const container = document.getElementById('reinforcementPhaseContainer');
-            const inputRow = document.getElementById('reinforcementInputRow');
-            const instruction = document.getElementById('reinforcementInstruction');
-            
-            // Update instruction text
-            instruction.textContent = `${gameState.currentWord} is spelled ${gameState.currentWord.split('').join(' ').toUpperCase()}. Practice typing it one more time.`;
-            
-            // Clear and create input boxes
-            inputRow.innerHTML = '';
-            for (let i = 0; i < gameState.currentWord.length; i++) {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'letter-input';
-                input.maxLength = 1;
-                input.value = '';
-                input.dataset.index = i;
-                input.addEventListener('input', handleReinforcementLetterInput);
-                input.addEventListener('keydown', handleReinforcementLetterKeydown);
-                inputRow.appendChild(input);
-            }
-            
-            container.style.display = 'flex';
-            
-            // Auto-focus first input after brief delay
-            setTimeout(() => {
-                const firstInput = inputRow.querySelector('.letter-input');
-                if (firstInput) {
-                    firstInput.focus();
-                }
-                // Play reinforcement announcement
-                speakReinforcementAnnouncement();
-            }, 200);
-        }
-
-        // Hide reinforcement phase
-        function hideReinforcementPhase() {
-            const container = document.getElementById('reinforcementPhaseContainer');
-            container.style.display = 'none';
-        }
-
-        // Handle input in reinforcement letter boxes
-        function handleReinforcementLetterInput(event) {
-            const input = event.target;
-            let value = input.value;
-            
-            // Only keep the last character if multiple were entered
-            if (value.length > 1) {
-                value = value.slice(-1);
-                input.value = value;
-            }
-            
-            // Move to next box if letter was entered
-            if (value) {
-                const currentIndex = parseInt(input.dataset.index);
-                const nextInput = input.parentElement.querySelector(`[data-index="${currentIndex + 1}"]`);
-                if (nextInput) {
-                    nextInput.focus();
-                    nextInput.select();
-                }
-            }
-        }
-
-        // Handle keydown events in reinforcement letter boxes
-        function handleReinforcementLetterKeydown(event) {
-            const input = event.target;
-            const currentIndex = parseInt(input.dataset.index);
-            
-            if (event.key === 'Backspace') {
-                // If current box is empty, move to previous box and clear it
-                if (!input.value && currentIndex > 0) {
-                    const prevInput = input.parentElement.querySelector(`[data-index="${currentIndex - 1}"]`);
-                    if (prevInput) {
-                        prevInput.focus();
-                        prevInput.select();
-                    }
-                }
-            } else if (event.key === 'Enter') {
-                event.preventDefault();
-                submitReinforcementGuess();
-            } else if (event.key === 'ArrowLeft' && currentIndex > 0) {
-                const prevInput = input.parentElement.querySelector(`[data-index="${currentIndex - 1}"]`);
-                if (prevInput) {
-                    prevInput.focus();
-                    prevInput.select();
-                }
-            } else if (event.key === 'ArrowRight' && currentIndex < gameState.currentWord.length - 1) {
-                const nextInput = input.parentElement.querySelector(`[data-index="${currentIndex + 1}"]`);
-                if (nextInput) {
-                    nextInput.focus();
-                    nextInput.select();
-                }
-            }
-        }
-
-        // Submit reinforcement guess
-        function submitReinforcementGuess() {
-            const inputRow = document.getElementById('reinforcementInputRow');
-            const inputs = inputRow.querySelectorAll('.letter-input');
-            
-            // Collect letters from input boxes
-            let guess = '';
-            let allFilled = true;
-            
-            inputs.forEach(input => {
-                const value = input.value.trim();
-                if (!value) {
-                    allFilled = false;
-                }
-                guess += value;
-            });
-            
-            // Prevent submission if not all boxes are filled
-            if (!allFilled) {
-                // Find first empty input and focus it
-                const firstEmpty = Array.from(inputs).find(input => !input.value.trim());
-                if (firstEmpty) {
-                    firstEmpty.focus();
-                }
-                return;
-            }
-            
-            console.log(`Reinforcement guess: "${guess}" for target: "${gameState.currentWord}"`);
-            
-            // Save the reinforcement attempt
-            saveSpellingAttempt(guess, guess === gameState.currentWord);
-            
-            // Always advance to next word after reinforcement (regardless of correctness)
-            hideReinforcementPhase();
-            setTimeout(() => {
-                advanceToNextWord();
-            }, 500);
-        }
-
         // Get current word data (updated for lessons)
         function getCurrentWordData() {
             if (gameState.currentLessonWords.length > 0) {
@@ -2160,16 +1904,14 @@ tutoring,determination,With determination you can achieve your goals.`;
             if (gameState.currentWordIndex < gameState.totalWords) {
                 // Reset to Initial Guess Phase for new word
                 gameState.currentPhase = 'initial';
-                gameState.hadIncorrectGuess = false; // Reset for new word
                 const wordData = getCurrentWordData();
                 if (wordData) {
                     gameState.currentWord = wordData.word;
                     gameState.currentSentence = wordData.sentence;
                     updateProgressCounter();
                     
-                    // Hide all phases and show initial guess input for new word
+                    // Hide clue phase and show initial guess input for new word
                     hideCluePhase();
-                    hideReinforcementPhase();
                     showInitialGuessInput();
                     
                     // Auto-play the new word
@@ -2197,7 +1939,6 @@ tutoring,determination,With determination you can achieve your goals.`;
                 console.log('Game completed!');
                 hideInitialGuessInput();
                 hideCluePhase();
-                hideReinforcementPhase();
                 const gameCompleteContainer = document.getElementById('gameCompleteContainer');
                 gameCompleteContainer.style.display = 'flex';
             }
@@ -2212,7 +1953,6 @@ tutoring,determination,With determination you can achieve your goals.`;
                 gameState.currentWordIndex = 0;
                 gameState.currentPhase = 'initial';
                 gameState.gameStarted = true;
-                gameState.hadIncorrectGuess = false;
                 
                 const wordData = getCurrentWordData();
                 if (wordData) {
@@ -2222,11 +1962,10 @@ tutoring,determination,With determination you can achieve your goals.`;
                     // Update progress counter
                     updateProgressCounter();
                     
-                    // Hide game complete container and all phases
+                    // Hide game complete container and clue phase
                     const gameCompleteContainer = document.getElementById('gameCompleteContainer');
                     gameCompleteContainer.style.display = 'none';
                     hideCluePhase();
-                    hideReinforcementPhase();
                     
                     // Clear any validation messages
                     clearValidationMessage();
