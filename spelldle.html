@@ -453,6 +453,75 @@
             margin: 0;
         }
 
+        .how-to-play {
+            background-color: #2a2a2a;
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 600px;
+            text-align: left;
+        }
+
+        .how-to-play h2 {
+            color: var(--blue);
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .how-to-play ul {
+            margin: 0;
+            padding-left: 20px;
+            line-height: 1.6;
+            list-style: none;
+        }
+
+        .how-to-play li {
+            margin-bottom: 12px;
+            position: relative;
+            padding-left: 8px;
+        }
+
+        .how-to-play li::before {
+            content: "•";
+            position: absolute;
+            left: -12px;
+            color: var(--blue);
+            font-weight: bold;
+        }
+
+        .clue-examples {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .clue-example {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 15px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .clue-color-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            margin-right: 6px;
+            display: inline-block;
+        }
+
+        .clue-color-box.green {
+            background-color: var(--green);
+        }
+
+        .clue-color-box.yellow {
+            background-color: var(--yellow);
+        }
+
+        .clue-color-box.gray {
+            background-color: var(--gray);
+        }
+
         .lesson-selector {
             display: flex;
             flex-direction: column;
@@ -592,6 +661,32 @@
         <!-- Welcome Screen -->
         <div class="welcome-screen" id="welcomeScreen" style="display: flex;">
             <h1>Spelldle</h1>
+            
+            <div class="how-to-play">
+                <h2>How to Play</h2>
+                <ul>
+                    <li>Listen carefully as the word and an example sentence are spoken.</li>
+                    <li>Type your spelling of the word in the input box and press Enter or click Submit.</li>
+                    <li>If your first guess is incorrect, you'll get clues:
+                        <div class="clue-examples">
+                            <div class="clue-example">
+                                <span class="clue-color-box green"></span>
+                                Correct letter in the correct position.
+                            </div>
+                            <div class="clue-example">
+                                <span class="clue-color-box yellow"></span>
+                                Correct letter in the wrong position.
+                            </div>
+                            <div class="clue-example">
+                                <span class="clue-color-box gray"></span>
+                                Letter not in the word.
+                            </div>
+                        </div>
+                    </li>
+                    <li>Use the clues to guess again in the letter boxes.</li>
+                </ul>
+            </div>
+            
             <div class="lesson-selector" id="lessonSelector">
                 <label for="lessonDropdown">Choose a lesson:</label>
                 <select id="lessonDropdown" class="lesson-dropdown">
