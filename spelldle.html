@@ -1762,8 +1762,8 @@ tutoring 3,precautions,We take precautions to stay safe.`;
         function speakReinforcementAnnouncement() {
             if (!ttsSupported || !gameState.currentWord) return;
             
-            // Create spelled-out version of the word
-            const spelledWord = gameState.currentWord.split('').join(' ').toUpperCase();
+            // Create spelled-out version of the word with commas between letters
+            const spelledWord = gameState.currentWord.split('').join(',').toUpperCase();
             const announcement = `Correct! ${gameState.currentWord} is spelled ${spelledWord}. Practice typing it one more time.`;
             
             const utterance = new SpeechSynthesisUtterance(announcement);
