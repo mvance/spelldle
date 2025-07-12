@@ -2329,9 +2329,6 @@ tutoring 3,precautions,We take precautions to stay safe.`;
             
             console.log(`Reinforcement guess: "${guess}" for target: "${gameState.currentWord}"`);
             
-            // Save the reinforcement attempt
-            saveSpellingAttempt(guess, true);
-            
             // Advance to next word after reinforcement
             setTimeout(() => {
                 advanceToNextWord();
