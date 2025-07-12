@@ -1096,6 +1096,7 @@ tutoring 3,precautions,We take precautions to stay safe.`;
         let ttsSupported = false;
         let currentUtterance = null;
         let synth = null;
+        let preferredVoice = null;
 
         // Parse embedded CSV lessons
         function loadLessons() {
@@ -1573,10 +1574,40 @@ tutoring 3,precautions,We take precautions to stay safe.`;
                 synth = window.speechSynthesis;
                 ttsSupported = true;
                 console.log('Text-to-speech supported');
+                
+                // Find and set the preferred voice
+                findPreferredVoice();
             } else {
                 ttsSupported = false;
                 console.log('Text-to-speech not supported');
                 showAudioFallback();
+            }
+        }
+
+        // Find the preferred "Google US English" voice
+        function findPreferredVoice() {
+            // Wait for voices to be loaded
+            function setVoice() {
+                const voices = synth.getVoices();
+                console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+                
+                // Look for "Google US English" voice
+                preferredVoice = voices.find(voice => 
+                    voice.name.includes('Google US English') && voice.lang === 'en-US'
+                );
+                
+                if (preferredVoice) {
+                    console.log('Using preferred voice:', preferredVoice.name);
+                } else {
+                    console.log('Google US English voice not found, using default voice');
+                }
+            }
+            
+            // Voices might not be loaded immediately
+            if (synth.getVoices().length > 0) {
+                setVoice();
+            } else {
+                synth.addEventListener('voiceschanged', setVoice);
             }
         }
 
@@ -1594,7 +1625,11 @@ tutoring 3,precautions,We take precautions to stay safe.`;
             const textToSpeak = `${word}... ${sentence}`;
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
             
-            // Use browser default voice at normal rate
+            // Use preferred voice if available
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+            
             utterance.rate = 1.0;
             utterance.pitch = 1.0;
             utterance.volume = 1.0;
@@ -1652,6 +1687,12 @@ tutoring 3,precautions,We take precautions to stay safe.`;
             if (!ttsSupported) return;
             
             const correctUtterance = new SpeechSynthesisUtterance('Correct!');
+            
+            // Use preferred voice if available
+            if (preferredVoice) {
+                correctUtterance.voice = preferredVoice;
+            }
+            
             correctUtterance.rate = 1.0;
             correctUtterance.pitch = 1.0;
             correctUtterance.volume = 1.0;
@@ -1726,6 +1767,12 @@ tutoring 3,precautions,We take precautions to stay safe.`;
             const announcement = `Correct! ${gameState.currentWord} is spelled ${spelledWord}.. Practice spelling it one more time.`;
             
             const utterance = new SpeechSynthesisUtterance(announcement);
+            
+            // Use preferred voice if available
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+            
             utterance.rate = 0.9; // Slightly slower for clarity
             utterance.pitch = 1.0;
             utterance.volume = 1.0;
