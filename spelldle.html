@@ -522,6 +522,11 @@
             background-color: var(--gray);
         }
 
+        .clue-color-box.extraneous {
+            background-color: transparent;
+            border: 2px dotted var(--gray);
+        }
+
         .lesson-selector {
             display: flex;
             flex-direction: column;
@@ -680,6 +685,10 @@
                             <div class="clue-example">
                                 <span class="clue-color-box gray"></span>
                                 Letter not in the word.
+                            </div>
+                            <div class="clue-example">
+                                <span class="clue-color-box extraneous"></span>
+                                Extra letter (when your guess is too long).
                             </div>
                         </div>
                     </li>
