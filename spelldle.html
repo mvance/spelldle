@@ -2085,13 +2085,19 @@ tutoring 4,pneumonoultramicroscopicsilicovolcanoconiosis,Pneumonoultramicroscopi
                 const prevInput = input.parentElement.querySelector(`[data-index="${currentIndex - 1}"]`);
                 if (prevInput) {
                     prevInput.focus();
-                    prevInput.select();
+                    // Position cursor at end of content
+                    setTimeout(() => {
+                        prevInput.setSelectionRange(prevInput.value.length, prevInput.value.length);
+                    }, 0);
                 }
             } else if (event.key === 'ArrowRight' && currentIndex < gameState.currentWord.length - 1) {
                 const nextInput = input.parentElement.querySelector(`[data-index="${currentIndex + 1}"]`);
                 if (nextInput) {
                     nextInput.focus();
-                    nextInput.select();
+                    // Position cursor at end of content
+                    setTimeout(() => {
+                        nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
+                    }, 0);
                 }
             }
         }
@@ -2342,13 +2348,19 @@ tutoring 4,pneumonoultramicroscopicsilicovolcanoconiosis,Pneumonoultramicroscopi
                 const prevInput = input.parentElement.querySelector(`[data-index="${currentIndex - 1}"]`);
                 if (prevInput) {
                     prevInput.focus();
-                    prevInput.select();
+                    // Position cursor at end of content
+                    setTimeout(() => {
+                        prevInput.setSelectionRange(prevInput.value.length, prevInput.value.length);
+                    }, 0);
                 }
             } else if (event.key === 'ArrowRight' && currentIndex < gameState.currentWord.length - 1) {
                 const nextInput = input.parentElement.querySelector(`[data-index="${currentIndex + 1}"]`);
                 if (nextInput) {
                     nextInput.focus();
-                    nextInput.select();
+                    // Position cursor at end of content
+                    setTimeout(() => {
+                        nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
+                    }, 0);
                 }
             }
         }
