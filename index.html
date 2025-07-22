@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spelldle</title>
     
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.skypack.dev https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline';">
+    
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
@@ -12,9 +15,13 @@
     <link rel="manifest" href="favicon_io/site.webmanifest">
     
     <!-- Papa Parse CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" 
+            integrity="sha384-ZnDOfNvW2FK39FU4ZmNOw4rskSeY4jQBPaXYETkW5j+5+fonyFOXdd6xLPEI0Hy+" 
+            crossorigin="anonymous"></script>
     <!-- Canvas Confetti CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js" 
+            integrity="sha384-V+PMnmFvqJe/U9+ckZz+IRvzigGtqbrjc/rNkxTkwlTCpsrBdqYgmQfuOBOuww/8" 
+            crossorigin="anonymous"></script>
     <style>
         /* CSS Reset */
         * {
