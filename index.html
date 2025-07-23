@@ -779,324 +779,8 @@
     </div>
 
     <script>
-        // Embedded CSV data (to avoid CORS issues with file:// protocol)
-        const EMBEDDED_CSV_DATA = `Lesson Name,Word,Example Sentence
-Lesson 1,in,The cat is in the box.
-Lesson 1,pin,I need a pin for my shirt.
-Lesson 1,tin,The cookies are in the tin.
-Lesson 1,spin,Watch the top spin fast.
-Lesson 2,I,I like to read books.
-Lesson 2,pins,She put pins in the cushion.
-Lesson 2,tins,We stacked the empty tins.
-Lesson 2,spins,The dancer spins on her toes.
-Lesson 2,kin,My kin live nearby.
-Lesson 2,skin,My skin feels soft.
-Lesson 2,win,I hope to win the game.
-Lesson 2,twin,My twin is my best friend.
-Lesson 3,thin,The paper is very thin.
-Lesson 3,pinned,She pinned the note up.
-Lesson 3,tinned,We ate tinned peaches.
-Lesson 3,I,I saw a bird outside.
-Lesson 3,shin,I bumped my shin on the step.
-Lesson 3,skins,The apple skins are red.
-Lesson 3,wins,He wins every race.
-Lesson 3,twins,The twins wore matching hats.
-Lesson 3,be,I want to be a helper.
-Lesson 3,begin,Let's begin the lesson.
-Lesson 3,chin,He rested his chin on his hand.
-Lesson 3,she,She smiled at me.
-Lesson 4,thins,The soup thins as you add water.
-Lesson 4,pinning,She is pinning up her hair.
-Lesson 4,tinning,He is tinning the roof.
-Lesson 4,spinning,The wheel is spinning quickly.
-Lesson 4,shins,My shins hurt after running.
-Lesson 4,skinned,He skinned his knee.
-Lesson 4,winning,She is winning the contest.
-Lesson 4,inner,The inner circle is blue.
-Lesson 4,be,I will be on time.
-Lesson 4,begins,School begins at eight.
-Lesson 4,chins,The children touched their chins.
-Lesson 4,we,We are going to the park.
-Lesson 4,wee,The puppy is very wee.
-Lesson 4,bee,A bee landed on the flower.
-Lesson 4,see,I see a rainbow.
-Lesson 4,tree,The tree is tall.
-Lesson 5,thinned,The sauce thinned after boiling.
-Lesson 5,thinner,This book is thinner than that one.
-Lesson 5,tinner,The tinner fixed the roof.
-Lesson 5,spinner,The spider is a fast spinner.
-Lesson 5,fins,The fish has bright fins.
-Lesson 5,dinner,We had pizza for dinner.
-Lesson 5,winner,The winner gets a prize.
-Lesson 5,be,Please be careful.
-Lesson 5,inning,The second inning just ended.
-Lesson 5,beginning,The story has a happy beginning.
-Lesson 5,chinned,He chinned himself on the bar.
-Lesson 5,we,We saw a movie.
-Lesson 5,wee,The kitten is so wee.
-Lesson 5,bee,The bee buzzed by.
-Lesson 5,see,Can you see the moon?
-Lesson 5,trees,The trees sway in the wind.
-Lesson 5,free,The bird is free now.
-Lesson 5,agree,I agree with you.
-Lesson 5,disagree,They disagree on the answer.
-Lesson 5,fees,The library has no fees.
-Lesson 6,thinning,The crowd is thinning out.
-Lesson 6,thinnest,This line is the thinnest.
-Lesson 6,tinners,The tinners worked all day.
-Lesson 6,spinners,The spinners made yarn.
-Lesson 6,shin,He scraped his shin.
-Lesson 6,inn,We stayed at a cozy inn.
-Lesson 6,winners,The winners cheered loudly.
-Lesson 6,bee,The bee made honey.
-Lesson 6,innings,There are nine innings in baseball.
-Lesson 6,beginnings,New beginnings feel exciting.
-Lesson 6,chinning,She is chinning at the gym.
-Lesson 6,wee,The baby made a wee sound.
-Lesson 6,we,We finished our homework.
-Lesson 6,bees,Bees collect nectar.
-Lesson 6,sees,He sees a butterfly.
-Lesson 6,treed,The cat was treed by a dog.
-Lesson 6,frees,She frees the bird.
-Lesson 6,agrees,He agrees with the plan.
-Lesson 6,disagrees,She disagrees with his idea.
-Lesson 6,flea,My dog has a flea.
-Lesson 7,thin,Cut a thin slice of bread.
-Lesson 7,in,The toy is in the box.
-Lesson 7,inn,We slept at the inn.
-Lesson 7,spin,Spin the wheel now.
-Lesson 7,tins,The tins are empty.
-Lesson 7,skinny,The cat looks skinny.
-Lesson 7,winning,She is winning the race.
-Lesson 7,be,Be kind to others.
-Lesson 7,inner,The inner page is blank.
-Lesson 7,beginner,I am a beginner at chess.
-Lesson 7,chin,Touch your chin gently.
-Lesson 7,wee,The frog is wee.
-Lesson 7,we,We played outside.
-Lesson 7,bee,The bee flew away.
-Lesson 7,seeing,I am seeing stars tonight.
-Lesson 7,treeing,The dog is treeing a raccoon.
-Lesson 7,freed,They freed the trapped bird.
-Lesson 7,agreed,We agreed to share.
-Lesson 7,disagreed,They disagreed on the rules.
-Lesson 7,flees,The mouse flees from the cat.
-Lesson 8,thinner,My notebook is thinner than yours.
-Lesson 8,ins,The coach tracks the ins and outs.
-Lesson 8,inns,There are many inns in town.
-Lesson 8,spinning,The top is spinning fast.
-Lesson 8,tin,The tin is shiny.
-Lesson 8,skins,The skins are in the basket.
-Lesson 8,winner,The winner smiles.
-Lesson 8,be,Be ready at noon.
-Lesson 8,being,Being helpful is nice.
-Lesson 8,beginners,The beginners are learning.
-Lesson 8,chins,They lifted their chins.
-Lesson 8,we,We like to sing.
-Lesson 8,wee,The ducklings are wee.
-Lesson 8,bees,Bees are buzzing.
-Lesson 8,see,I see my friend.
-Lesson 8,trees,The trees are green.
-Lesson 8,freeing,He is freeing the fish.
-Lesson 8,agreeing,They are agreeing on a plan.
-Lesson 8,disagreeing,They are disagreeing again.
-Lesson 8,fleeing,The deer is fleeing danger.
-Lesson 9,up,Look up at the sky.
-Lesson 9,cup,I dropped my cup.
-Lesson 9,pup,The pup barked.
-Lesson 9,sup,Let's sup together.
-Lesson 9,good,That was a good meal.
-Lesson 9,wood,The chair is made of wood.
-Lesson 9,stood,She stood in line.
-Lesson 9,could,I could help you.
-Lesson 9,would,I would like some juice.
-Lesson 9,food,The food smells great.
-Lesson 9,mood,He is in a happy mood.
-Lesson 9,brood,The hen has a brood of chicks.
-Lesson 9,out,Go out to play.
-Lesson 9,shout,Please do not shout.
-Lesson 9,bout,He won the last bout.
-Lesson 9,lout,The lout made a mess.
-Lesson 9,clout,She has clout at work.
-Lesson 9,flout,Do not flout the rules.
-Lesson 9,pout,She began to pout.
-Lesson 9,spout,Water came from the spout.
-Lesson 9,rout,The team suffered a rout.
-Lesson 9,grout,He filled the gaps with grout.
-Lesson 9,route,Which route will you take?
-Lesson 9,should,You should try again.
-Lesson 9,eye,My eye is blue.
-Lesson 10,ups,There are many ups and downs.
-Lesson 10,cups,The cups are on the shelf.
-Lesson 10,pups,Three pups were born.
-Lesson 10,sups,He sups on soup.
-Lesson 10,goods,The goods arrived today.
-Lesson 10,woods,The woods are quiet.
-Lesson 10,stood,He stood by the window.
-Lesson 10,could,She could swim fast.
-Lesson 10,would,I would call you.
-Lesson 10,wouldn't,I wouldn't do that.
-Lesson 10,moods,Their moods changed.
-Lesson 10,broods,The duck broods her eggs.
-Lesson 10,outs,There were two outs in the game.
-Lesson 10,shouts,The crowd shouts loudly.
-Lesson 10,bouts,He had three bouts today.
-Lesson 10,louts,The louts left trash.
-Lesson 10,clouts,She clouts the ball hard.
-Lesson 10,flouts,He flouts the rules.
-Lesson 10,pouts,The child pouts often.
-Lesson 10,spouts,The whale spouts water.
-Lesson 10,routs,The team routs its rivals.
-Lesson 10,about,Tell me about your trip.
-Lesson 10,routes,There are two routes home.
-Lesson 10,shouldn't,You shouldn't be late.
-Lesson 10,eyes,Her eyes are brown.
-Lesson 11,up,Jump up high.
-Lesson 11,cupped,He cupped water in his hands.
-Lesson 11,puppy,The puppy wagged its tail.
-Lesson 11,supped,We supped at dusk.
-Lesson 11,goody,She got a goody bag.
-Lesson 11,wooded,The path is wooded.
-Lesson 11,stood,The dog stood still.
-Lesson 11,could,I could see the stars.
-Lesson 11,would,Would you like tea?
-Lesson 11,food,The food is hot.
-Lesson 11,mood,His mood is bright.
-Lesson 11,brooded,The hen brooded her eggs.
-Lesson 11,outing,We went on an outing.
-Lesson 11,shouted,He shouted for help.
-Lesson 11,about,She talked about her day.
-Lesson 11,stout,The mug is stout.
-Lesson 11,clouted,He clouted the ball.
-Lesson 11,flouted,She flouted the advice.
-Lesson 11,pouted,The baby pouted.
-Lesson 11,spouted,The whale spouted water.
-Lesson 11,grouted,He grouted the tiles.
-Lesson 11,wouldn't,I wouldn't lie.
-Lesson 11,routed,The team routed its rivals.
-Lesson 11,couldn't,I couldn't find my keys.
-Lesson 11,eye,Cover your eye gently.
-Lesson 12,ups,There are ups and downs in life.
-Lesson 12,cupping,She is cupping her hands.
-Lesson 12,eye,My puppy's eye is blue.
-Lesson 12,supping,We are supping together.
-Lesson 12,good,That is a good idea.
-Lesson 12,wooden,The box is wooden.
-Lesson 12,stood,He stood by the door.
-Lesson 12,could,I could do that.
-Lesson 12,would,Would you help me?
-Lesson 12,wouldn't,She wouldn't go outside.
-Lesson 12,moods,Their moods are cheerful.
-Lesson 12,brooding,The hen is brooding now.
-Lesson 12,outing,We had a fun outing.
-Lesson 12,shouting,The fans are shouting.
-Lesson 12,about,Tell me about your pet.
-Lesson 12,stout,The mug is stout and strong.
-Lesson 12,clouting,He is clouting the ball.
-Lesson 12,flouting,She is flouting the rules.
-Lesson 12,pouting,The child is pouting now.
-Lesson 12,spouting,Water is spouting up.
-Lesson 12,routing,The driver is routing the trip.
-Lesson 12,shouldn't,You shouldn't run inside.
-Lesson 12,grouting,He is grouting the tiles.
-Lesson 12,couldn't,I couldn't see well.
-Lesson 12,eyes,My eyes are tired.
-tutoring,goal,My goal is to finish my homework tonight.
-tutoring,hurt,I hurt my knee when I fell down.
-tutoring,pull,Please pull the door to open it.
-tutoring,wild,The wild animals live in the forest.
-tutoring,body,Exercise is good for your body.
-tutoring,peas,I like to eat green peas with dinner.
-tutoring,fruit,An apple is my favorite fruit.
-tutoring,great,You did a great job on your test.
-tutoring,brain,Your brain helps you think and learn.
-tutoring,yummy,The chocolate cake tastes yummy.
-tutoring,action,The movie had lots of action scenes.
-tutoring,health,Eating vegetables is good for your health.
-tutoring,safety,Always wear your helmet for safety.
-tutoring,soccer,We kicked the soccer ball in the park.
-tutoring,temper,Try to control your temper when angry.
-tutoring,pulled,She pulled the rope to ring the bell.
-tutoring,bodies,Our bodies need water to stay healthy.
-tutoring,choices,You have many choices for lunch today.
-tutoring,friends,My friends and I love to play together.
-tutoring,practice,I need to practice piano every day.
-tutoring,teachers,Our teachers help us learn new things.
-tutoring,throwing,He is throwing the ball to his friend.
-tutoring,ourselves,We can do this project by ourselves.
-tutoring,patience,You need patience when learning something new.
-tutoring,attention,Please pay attention to the lesson.
-tutoring,dangerous,It is dangerous to play near the street.
-tutoring,decisions,Making good decisions is important.
-tutoring,furniture,We rearranged the furniture in the living room.
-tutoring,gardening,My mom enjoys gardening in the backyard.
-tutoring,understand,I understand the math problem now.
-tutoring,poise,The dancer moved with grace and poise.
-tutoring,confidence,She has confidence in her abilities.
-tutoring,motivation,His motivation to succeed is very strong.
-tutoring,precautions,We take precautions to stay safe.
-tutoring,determination,With determination you can achieve your goals.
-tutoring 2,hurt,I hurt my knee when I fell down.
-tutoring 2,wild,The wild animals live in the forest.
-tutoring 2,body,Exercise is good for your body.
-tutoring 2,peas,I like to eat green peas with dinner.
-tutoring 2,fruit,An apple is my favorite fruit.
-tutoring 2,great,You did a great job on your test.
-tutoring 2,yummy,The chocolate cake tastes yummy.
-tutoring 2,health,Eating vegetables is good for your health.
-tutoring 2,safety,Always wear your helmet for safety.
-tutoring 2,pulled,She pulled the rope to ring the bell.
-tutoring 2,choices,You have many choices for lunch today.
-tutoring 2,friends,My friends and I love to play together.
-tutoring 2,practice,I need to practice piano every day.
-tutoring 2,teachers,Our teachers help us learn new things.
-tutoring 2,throwing,He is throwing the ball to his friend.
-tutoring 2,ourselves,We can do this project by ourselves.
-tutoring 2,patience,You need patience when learning something new.
-tutoring 2,attention,Please pay attention to the lesson.
-tutoring 2,dangerous,It is dangerous to play near the street.
-tutoring 2,decisions,Making good decisions is important.
-tutoring 2,furniture,The furniture in our classroom is comfortable.
-tutoring 2,gardening,My mom enjoys gardening in the backyard.
-tutoring 2,poise,The dancer moved with grace and poise.
-tutoring 2,precautions,We take precautions to stay safe.
-tutoring 3,wild,The wild animals live in the forest.
-tutoring 3,body,Exercise is good for your body.
-tutoring 3,health,Eating vegetables is good for your health.
-tutoring 3,safety,Always wear your helmet for safety.
-tutoring 3,pulled,She pulled the rope to ring the bell.
-tutoring 3,choices,You have many choices for lunch today.
-tutoring 3,friends,My friends and I love to play together.
-tutoring 3,practice,I need to practice piano every day.
-tutoring 3,teachers,Our teachers help us learn new things.
-tutoring 3,throwing,He is throwing the ball to his friend.
-tutoring 3,ourselves,We can do this project by ourselves.
-tutoring 3,patience,You need patience when learning something new.
-tutoring 3,attention,Please pay attention to the lesson.
-tutoring 3,dangerous,It is dangerous to play near the street.
-tutoring 3,decisions,Making good decisions is important.
-tutoring 3,furniture,The furniture in our classroom is comfortable.
-tutoring 3,poise,The dancer moved with grace and poise.
-tutoring 3,precautions,We take precautions to stay safe.
-tutoring 4,wild,The wild animals live in the forest.
-tutoring 4,body,Exercise is good for your body.
-tutoring 4,health,Eating vegetables is good for your health.
-tutoring 4,safety,Always wear your helmet for safety.
-tutoring 4,pulled,She pulled the rope to ring the bell.
-tutoring 4,choices,You have many choices for lunch today.
-tutoring 4,friends,My friends and I love to play together.
-tutoring 4,practice,I need to practice piano every day.
-tutoring 4,teachers,Our teachers help us learn new things.
-tutoring 4,throwing,He is throwing the ball to his friend.
-tutoring 4,ourselves,We can do this project by ourselves.
-tutoring 4,patience,You need patience when learning something new.
-tutoring 4,attention,Please pay attention to the lesson.
-tutoring 4,dangerous,It is dangerous to play near the street.
-tutoring 4,decisions,Making good decisions is important.
-tutoring 4,furniture,The furniture in our classroom is comfortable.
-tutoring 4,poise,The dancer moved with grace and poise.
-tutoring 4,precautions,We take precautions to stay safe.
-tutoring 4,pneumonoultramicroscopicsilicovolcanoconiosis,Pneumonoultramicroscopicsilicovolcanoconiosis is a very long word.`;
+        // CSV URL for dynamic loading
+        const CSV_URL = 'https://gist.githubusercontent.com/mvance/1096921b2243372780ccef1d82f1a156/raw/8b1b33f720013a907e2e3f681599971537d48b6b/spelldle_lessons.csv';
 
         // Lesson data
         let lessonsData = [];
@@ -1140,59 +824,72 @@ tutoring 4,pneumonoultramicroscopicsilicovolcanoconiosis,Pneumonoultramicroscopi
         let synth = null;
         let preferredVoice = null;
 
-        // Parse embedded CSV lessons
+        // Load lessons from GitHub Gist CSV
         function loadLessons() {
             return new Promise((resolve, reject) => {
-                console.log('Loading lessons from embedded CSV data...');
+                console.log('Loading lessons from GitHub Gist...');
                 
-                Papa.parse(EMBEDDED_CSV_DATA, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        if (results.errors.length > 0) {
-                            reject(new Error(`CSV Parse Error: ${results.errors.map(e => e.message).join(', ')}`));
-                            return;
+                fetch(CSV_URL)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
-                        
-                        // Map CSV headers to expected format
-                        const headers = results.meta.fields || [];
-                        
-                        // Check if we have the expected headers (with flexible naming)
-                        const hasLessonName = headers.includes('Lesson Name') || headers.includes('lesson_name');
-                        const hasWord = headers.includes('Word') || headers.includes('word');
-                        const hasSentence = headers.includes('Example Sentence') || headers.includes('sentence');
-                        
-                        if (!hasLessonName || !hasWord || !hasSentence) {
-                            reject(new Error(`Missing required columns. Found: ${headers.join(', ')}`));
-                            return;
-                        }
-                        
-                        // Normalize the data to use consistent field names
-                        lessonsData = results.data.map(row => ({
-                            lesson_name: row['Lesson Name'] || row['lesson_name'],
-                            word: row['Word'] || row['word'],
-                            sentence: row['Example Sentence'] || row['sentence']
-                        })).filter(row => row.lesson_name && row.word && row.sentence);
-                        
-                        // Clean up any problematic entries (filter out entries with spaces in word field)
-                        lessonsData = lessonsData.filter(row => {
-                            if (row.word.includes(' ') && row.word.trim() !== row.word) {
-                                console.warn(`Skipping problematic word entry: "${row.word}"`);
-                                return false;
+                        return response.text();
+                    })
+                    .then(csvText => {
+                        Papa.parse(csvText, {
+                            header: true,
+                            skipEmptyLines: true,
+                            complete: function(results) {
+                                if (results.errors.length > 0) {
+                                    reject(new Error(`CSV Parse Error: ${results.errors.map(e => e.message).join(', ')}`));
+                                    return;
+                                }
+                                
+                                // Map CSV headers to expected format
+                                const headers = results.meta.fields || [];
+                                
+                                // Check if we have the expected headers (with flexible naming)
+                                const hasLessonName = headers.includes('Lesson Name') || headers.includes('lesson_name');
+                                const hasWord = headers.includes('Word') || headers.includes('word');
+                                const hasSentence = headers.includes('Example Sentence') || headers.includes('sentence');
+                                
+                                if (!hasLessonName || !hasWord || !hasSentence) {
+                                    reject(new Error(`Missing required columns. Found: ${headers.join(', ')}`));
+                                    return;
+                                }
+                                
+                                // Normalize the data to use consistent field names
+                                lessonsData = results.data.map(row => ({
+                                    lesson_name: row['Lesson Name'] || row['lesson_name'],
+                                    word: row['Word'] || row['word'],
+                                    sentence: row['Example Sentence'] || row['sentence']
+                                })).filter(row => row.lesson_name && row.word && row.sentence);
+                                
+                                // Clean up any problematic entries (filter out entries with spaces in word field)
+                                lessonsData = lessonsData.filter(row => {
+                                    if (row.word.includes(' ') && row.word.trim() !== row.word) {
+                                        console.warn(`Skipping problematic word entry: "${row.word}"`);
+                                        return false;
+                                    }
+                                    return true;
+                                });
+                                
+                                availableLessons = [...new Set(lessonsData.map(row => row.lesson_name))].filter(Boolean);
+                                
+                                console.log(`Loaded ${lessonsData.length} words across ${availableLessons.length} lessons from GitHub Gist`);
+                                console.log('Available lessons:', availableLessons);
+                                resolve();
+                            },
+                            error: function(error) {
+                                reject(new Error(`Papa Parse Error: ${error.message}`));
                             }
-                            return true;
                         });
-                        
-                        availableLessons = [...new Set(lessonsData.map(row => row.lesson_name))].filter(Boolean);
-                        
-                        console.log(`Loaded ${lessonsData.length} words across ${availableLessons.length} lessons`);
-                        console.log('Available lessons:', availableLessons);
-                        resolve();
-                    },
-                    error: function(error) {
-                        reject(new Error(`Papa Parse Error: ${error.message}`));
-                    }
-                });
+                    })
+                    .catch(error => {
+                        console.error('Failed to fetch CSV from GitHub Gist:', error);
+                        reject(error);
+                    });
             });
         }
 
