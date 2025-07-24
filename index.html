@@ -779,6 +779,84 @@
                 <button class="modal-button" onclick="retryLessonLoad()">Retry</button>
             </div>
         </div>
+        
+        <!-- Authentication Modal -->
+        <div class="auth-modal-overlay" id="authModal" style="display: none;">
+            <div class="auth-modal-content">
+                <!-- Email Input Phase -->
+                <div class="auth-phase" id="emailPhase">
+                    <h2>Sign In to Save Progress</h2>
+                    <p class="auth-description">
+                        Sign in to save your spelling progress and track your improvement over time. 
+                        Your data will be securely stored and available across all your devices.
+                    </p>
+                    
+                    <div class="auth-form">
+                        <div class="auth-input-group">
+                            <label for="emailInput">Email Address</label>
+                            <input 
+                                type="email" 
+                                id="emailInput" 
+                                class="auth-input" 
+                                placeholder="Enter your email address"
+                                autocomplete="email"
+                                spellcheck="false"
+                            />
+                        </div>
+                        
+                        <div class="auth-error" id="emailError" style="display: none;"></div>
+                        
+                        <div class="auth-buttons">
+                            <button class="auth-button primary" id="sendOtpButton">
+                                Send Verification Code
+                            </button>
+                            <button class="auth-button secondary" id="skipAuthButton">
+                                Skip and Play Without Saving
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- OTP Verification Phase -->
+                <div class="auth-phase" id="otpPhase" style="display: none;">
+                    <h2>Verify Your Email</h2>
+                    <p class="auth-description">
+                        We've sent a 6-digit verification code to <span id="emailDisplay"></span>. 
+                        Please enter the code below to complete sign in.
+                    </p>
+                    
+                    <div class="auth-form">
+                        <div class="auth-input-group">
+                            <label for="otpInput">Verification Code</label>
+                            <input 
+                                type="text" 
+                                id="otpInput" 
+                                class="auth-input" 
+                                placeholder="Enter 6-digit code"
+                                maxlength="6"
+                                pattern="[0-9]{6}"
+                                autocomplete="one-time-code"
+                                spellcheck="false"
+                            />
+                        </div>
+                        
+                        <div class="auth-error" id="otpError" style="display: none;"></div>
+                        
+                        <div class="auth-buttons">
+                            <button class="auth-button primary" id="verifyOtpButton">
+                                Verify Code
+                            </button>
+                            <button class="auth-button secondary" id="resendOtpButton">
+                                Resend Code
+                            </button>
+                            <button class="auth-button secondary" id="backToEmailButton">
+                                Back to Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
