@@ -1177,6 +1177,227 @@
             }
         }
         
+        // Authentication modal functions
+        function showAuthModal() {
+            const modal = document.getElementById('authModal');
+            modal.style.display = 'flex';
+            
+            // Show email phase and hide OTP phase
+            document.getElementById('emailPhase').style.display = 'flex';
+            document.getElementById('otpPhase').style.display = 'none';
+            
+            // Clear any previous errors
+            hideEmailError();
+            hideOtpError();
+            
+            // Focus email input
+            setTimeout(() => {
+                const emailInput = document.getElementById('emailInput');
+                emailInput.focus();
+            }, 100);
+            
+            console.log('Authentication modal shown');
+        }
+        
+        function hideAuthModal() {
+            const modal = document.getElementById('authModal');
+            modal.style.display = 'none';
+            
+            // Clear form data
+            document.getElementById('emailInput').value = '';
+            document.getElementById('otpInput').value = '';
+            
+            // Clear errors
+            hideEmailError();
+            hideOtpError();
+            
+            // Reset button states
+            resetEmailPhaseButtons();
+            resetOtpPhaseButtons();
+            
+            console.log('Authentication modal hidden');
+        }
+        
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        function showEmailError(message) {
+            const errorDiv = document.getElementById('emailError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function hideEmailError() {
+            const errorDiv = document.getElementById('emailError');
+            errorDiv.style.display = 'none';
+        }
+        
+        function showOtpError(message) {
+            const errorDiv = document.getElementById('otpError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function hideOtpError() {
+            const errorDiv = document.getElementById('otpError');
+            errorDiv.style.display = 'none';
+        }
+        
+        function setEmailButtonLoading(loading) {
+            const button = document.getElementById('sendOtpButton');
+            if (loading) {
+                button.disabled = true;
+                button.textContent = 'Sending...';
+            } else {
+                button.disabled = false;
+                button.textContent = 'Send Verification Code';
+            }
+        }
+        
+        function resetEmailPhaseButtons() {
+            const sendButton = document.getElementById('sendOtpButton');
+            const skipButton = document.getElementById('skipAuthButton');
+            
+            sendButton.disabled = false;
+            sendButton.textContent = 'Send Verification Code';
+            skipButton.disabled = false;
+        }
+        
+        function resetOtpPhaseButtons() {
+            const verifyButton = document.getElementById('verifyOtpButton');
+            const resendButton = document.getElementById('resendOtpButton');
+            const backButton = document.getElementById('backToEmailButton');
+            
+            verifyButton.disabled = false;
+            verifyButton.textContent = 'Verify Code';
+            resendButton.disabled = false;
+            resendButton.textContent = 'Resend Code';
+            backButton.disabled = false;
+        }
+        
+        async function sendOTP(email) {
+            if (!supabase) {
+                throw new Error('Supabase client not available');
+            }
+            
+            try {
+                console.log('Sending OTP to:', email);
+                const { data, error } = await supabase.auth.signInWithOtp({
+                    email: email,
+                    options: {
+                        shouldCreateUser: true
+                    }
+                });
+                
+                if (error) {
+                    console.error('OTP send error:', error);
+                    throw error;
+                }
+                
+                console.log('OTP sent successfully:', data);
+                return data;
+            } catch (error) {
+                console.error('Failed to send OTP:', error);
+                throw error;
+            }
+        }
+        
+        function transitionToOtpPhase(email) {
+            // Hide email phase and show OTP phase
+            document.getElementById('emailPhase').style.display = 'none';
+            document.getElementById('otpPhase').style.display = 'flex';
+            
+            // Update email display in OTP phase
+            document.getElementById('emailDisplay').textContent = email;
+            
+            // Focus OTP input
+            setTimeout(() => {
+                const otpInput = document.getElementById('otpInput');
+                otpInput.focus();
+            }, 100);
+            
+            console.log('Transitioned to OTP phase for email:', email);
+        }
+        
+        function transitionToEmailPhase() {
+            // Hide OTP phase and show email phase
+            document.getElementById('otpPhase').style.display = 'none';
+            document.getElementById('emailPhase').style.display = 'flex';
+            
+            // Clear OTP input and errors
+            document.getElementById('otpInput').value = '';
+            hideOtpError();
+            
+            // Reset OTP phase buttons
+            resetOtpPhaseButtons();
+            
+            // Focus email input
+            setTimeout(() => {
+                const emailInput = document.getElementById('emailInput');
+                emailInput.focus();
+            }, 100);
+            
+            console.log('Transitioned back to email phase');
+        }
+        
+        async function handleEmailSubmit() {
+            const emailInput = document.getElementById('emailInput');
+            const email = emailInput.value.trim();
+            
+            // Clear previous errors
+            hideEmailError();
+            
+            // Validate email
+            if (!email) {
+                showEmailError('Please enter your email address.');
+                emailInput.focus();
+                return;
+            }
+            
+            if (!validateEmail(email)) {
+                showEmailError('Please enter a valid email address.');
+                emailInput.focus();
+                return;
+            }
+            
+            // Set loading state
+            setEmailButtonLoading(true);
+            
+            try {
+                await sendOTP(email);
+                
+                // Success - transition to OTP phase
+                transitionToOtpPhase(email);
+                
+            } catch (error) {
+                // Handle specific error types
+                let errorMessage = 'Failed to send verification code. Please try again.';
+                
+                if (error.message?.includes('rate limit')) {
+                    errorMessage = 'Too many requests. Please wait a moment before trying again.';
+                } else if (error.message?.includes('invalid email')) {
+                    errorMessage = 'Please enter a valid email address.';
+                } else if (error.message?.includes('network')) {
+                    errorMessage = 'Network error. Please check your connection and try again.';
+                }
+                
+                showEmailError(errorMessage);
+                console.error('Email submit error:', error);
+            } finally {
+                // Reset loading state
+                setEmailButtonLoading(false);
+            }
+        }
+        
+        function handleSkipAuth() {
+            console.log('User chose to skip authentication');
+            hideAuthModal();
+            // Continue with unauthenticated experience
+            // The game will work normally but won't save data
+        }
+        
         // CSV URL for dynamic loading (always pulls latest version)
         const CSV_URL = 'https://gist.githubusercontent.com/mvance/1096921b2243372780ccef1d82f1a156/raw/spelldle_lessons.csv';
 
@@ -2701,6 +2922,9 @@
                 checkExistingSession();
                 setupAuthStateListener();
                 
+                // Set up authentication modal event listeners
+                setupAuthModalEventListeners();
+                
                 // Initialize lessons
                 initializeLessons();
                 
@@ -2732,6 +2956,48 @@
                 console.error('Error during page initialization:', error);
             }
         });
+        
+        // Set up authentication modal event listeners
+        function setupAuthModalEventListeners() {
+            // Email phase event listeners
+            const emailInput = document.getElementById('emailInput');
+            const sendOtpButton = document.getElementById('sendOtpButton');
+            const skipAuthButton = document.getElementById('skipAuthButton');
+            
+            // Email input Enter key support
+            emailInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleEmailSubmit();
+                }
+            });
+            
+            // Send OTP button
+            sendOtpButton.addEventListener('click', handleEmailSubmit);
+            
+            // Skip authentication button
+            skipAuthButton.addEventListener('click', handleSkipAuth);
+            
+            // OTP phase event listeners (will be implemented in next step)
+            const otpInput = document.getElementById('otpInput');
+            const verifyOtpButton = document.getElementById('verifyOtpButton');
+            const resendOtpButton = document.getElementById('resendOtpButton');
+            const backToEmailButton = document.getElementById('backToEmailButton');
+            
+            // OTP input Enter key support
+            otpInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    // Will be implemented in next step
+                    console.log('OTP submit via Enter key (not yet implemented)');
+                }
+            });
+            
+            // Back to email button
+            backToEmailButton.addEventListener('click', transitionToEmailPhase);
+            
+            console.log('Authentication modal event listeners set up');
+        }
     </script>
 </body>
 </html>
