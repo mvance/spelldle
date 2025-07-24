@@ -802,6 +802,69 @@
             session: null
         };
         
+        // Authentication state management functions
+        function isAuthenticated() {
+            return authState.isAuthenticated;
+        }
+        
+        function updateAuthState(session) {
+            if (session && session.user) {
+                authState.isAuthenticated = true;
+                authState.user = session.user;
+                authState.session = session;
+                console.log('Authentication state updated: user logged in', session.user.email);
+            } else {
+                authState.isAuthenticated = false;
+                authState.user = null;
+                authState.session = null;
+                console.log('Authentication state updated: user logged out');
+            }
+        }
+        
+        async function checkExistingSession() {
+            if (!supabase) {
+                console.log('Supabase client not available, skipping session check');
+                return;
+            }
+            
+            try {
+                console.log('Checking for existing Supabase session...');
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('Error checking existing session:', error);
+                    return;
+                }
+                
+                updateAuthState(session);
+                
+                if (session) {
+                    console.log('Existing session found for user:', session.user.email);
+                } else {
+                    console.log('No existing session found');
+                }
+            } catch (error) {
+                console.error('Failed to check existing session:', error);
+            }
+        }
+        
+        function setupAuthStateListener() {
+            if (!supabase) {
+                console.log('Supabase client not available, skipping auth state listener setup');
+                return;
+            }
+            
+            try {
+                console.log('Setting up authentication state listener...');
+                supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('Auth state change event:', event, session?.user?.email || 'no user');
+                    updateAuthState(session);
+                });
+            } catch (error) {
+                console.error('Failed to setup auth state listener:', error);
+            }
+        }
+        
         // CSV URL for dynamic loading (always pulls latest version)
         const CSV_URL = 'https://gist.githubusercontent.com/mvance/1096921b2243372780ccef1d82f1a156/raw/spelldle_lessons.csv';
 
@@ -2321,6 +2384,10 @@
                 console.log('Spelldle initialized');
                 console.log('Current game state:', gameState);
                 checkTTSSupport();
+                
+                // Initialize authentication
+                checkExistingSession();
+                setupAuthStateListener();
                 
                 // Initialize lessons
                 initializeLessons();
