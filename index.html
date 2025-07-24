@@ -1398,6 +1398,162 @@
             // The game will work normally but won't save data
         }
         
+        // OTP verification functions
+        function validateOTP(otp) {
+            // Check if OTP is exactly 6 digits
+            const otpRegex = /^[0-9]{6}$/;
+            return otpRegex.test(otp);
+        }
+        
+        async function verifyOTP(email, otp) {
+            if (!supabase) {
+                throw new Error('Supabase client not available');
+            }
+            
+            try {
+                console.log('Verifying OTP for:', email);
+                const { data, error } = await supabase.auth.verifyOtp({
+                    email: email,
+                    token: otp,
+                    type: 'email'
+                });
+                
+                if (error) {
+                    console.error('OTP verification error:', error);
+                    throw error;
+                }
+                
+                console.log('OTP verified successfully:', data);
+                return data;
+            } catch (error) {
+                console.error('Failed to verify OTP:', error);
+                throw error;
+            }
+        }
+        
+        function setOtpButtonLoading(loading) {
+            const button = document.getElementById('verifyOtpButton');
+            if (loading) {
+                button.disabled = true;
+                button.textContent = 'Verifying...';
+            } else {
+                button.disabled = false;
+                button.textContent = 'Verify Code';
+            }
+        }
+        
+        function setResendButtonCooldown(seconds) {
+            const button = document.getElementById('resendOtpButton');
+            button.disabled = true;
+            
+            let remainingSeconds = seconds;
+            const updateButton = () => {
+                if (remainingSeconds > 0) {
+                    button.textContent = `Resend Code (${remainingSeconds}s)`;
+                    remainingSeconds--;
+                    setTimeout(updateButton, 1000);
+                } else {
+                    button.disabled = false;
+                    button.textContent = 'Resend Code';
+                }
+            };
+            
+            updateButton();
+        }
+        
+        async function handleOtpSubmit() {
+            const otpInput = document.getElementById('otpInput');
+            const emailDisplay = document.getElementById('emailDisplay');
+            const otp = otpInput.value.trim();
+            const email = emailDisplay.textContent;
+            
+            // Clear previous errors
+            hideOtpError();
+            
+            // Validate OTP
+            if (!otp) {
+                showOtpError('Please enter the verification code.');
+                otpInput.focus();
+                return;
+            }
+            
+            if (!validateOTP(otp)) {
+                showOtpError('Please enter a valid 6-digit verification code.');
+                otpInput.focus();
+                return;
+            }
+            
+            // Set loading state
+            setOtpButtonLoading(true);
+            
+            try {
+                await verifyOTP(email, otp);
+                
+                // Success - authentication complete
+                console.log('Authentication successful for:', email);
+                hideAuthModal();
+                
+                // The auth state will be updated automatically by the auth state listener
+                
+            } catch (error) {
+                // Handle specific error types
+                let errorMessage = 'Failed to verify code. Please try again.';
+                
+                if (error.message?.includes('invalid') || error.message?.includes('expired')) {
+                    errorMessage = 'Invalid or expired verification code. Please try again.';
+                } else if (error.message?.includes('too many')) {
+                    errorMessage = 'Too many attempts. Please request a new code.';
+                } else if (error.message?.includes('network')) {
+                    errorMessage = 'Network error. Please check your connection and try again.';
+                }
+                
+                showOtpError(errorMessage);
+                console.error('OTP verification error:', error);
+                
+                // Focus OTP input for retry
+                otpInput.focus();
+                otpInput.select();
+            } finally {
+                // Reset loading state
+                setOtpButtonLoading(false);
+            }
+        }
+        
+        async function handleResendOtp() {
+            const emailDisplay = document.getElementById('emailDisplay');
+            const email = emailDisplay.textContent;
+            
+            // Clear previous errors
+            hideOtpError();
+            
+            try {
+                await sendOTP(email);
+                
+                // Success - start cooldown timer
+                setResendButtonCooldown(60);
+                console.log('OTP resent successfully to:', email);
+                
+                // Show success feedback
+                showOtpError('New verification code sent to your email.');
+                setTimeout(() => {
+                    hideOtpError();
+                }, 3000);
+                
+            } catch (error) {
+                // Handle specific error types
+                let errorMessage = 'Failed to resend verification code. Please try again.';
+                
+                if (error.message?.includes('rate limit')) {
+                    errorMessage = 'Too many requests. Please wait before requesting another code.';
+                } else if (error.message?.includes('network')) {
+                    errorMessage = 'Network error. Please check your connection and try again.';
+                }
+                
+                showOtpError(errorMessage);
+                console.error('OTP resend error:', error);
+            }
+        }
+        
         // CSV URL for dynamic loading (always pulls latest version)
         const CSV_URL = 'https://gist.githubusercontent.com/mvance/1096921b2243372780ccef1d82f1a156/raw/spelldle_lessons.csv';
 
@@ -2988,10 +3144,26 @@
             otpInput.addEventListener('keydown', function(event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
-                    // Will be implemented in next step
-                    console.log('OTP submit via Enter key (not yet implemented)');
+                    handleOtpSubmit();
                 }
             });
+            
+            // OTP input formatting (only allow digits)
+            otpInput.addEventListener('input', function(event) {
+                // Remove any non-digit characters
+                let value = event.target.value.replace(/\D/g, '');
+                // Limit to 6 digits
+                if (value.length > 6) {
+                    value = value.slice(0, 6);
+                }
+                event.target.value = value;
+            });
+            
+            // Verify OTP button
+            verifyOtpButton.addEventListener('click', handleOtpSubmit);
+            
+            // Resend OTP button
+            resendOtpButton.addEventListener('click', handleResendOtp);
             
             // Back to email button
             backToEmailButton.addEventListener('click', transitionToEmailPhase);
