@@ -14,6 +14,9 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
     <link rel="manifest" href="favicon_io/site.webmanifest">
     
+    <!-- Supabase JavaScript Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <!-- Papa Parse CDN -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" 
             integrity="sha384-D/t0ZMqQW31H3az8ktEiNb39wyKnS82iFY52QPACM+IjKW3jDUhyIgh2PApRqJZs" 
@@ -779,6 +782,26 @@
     </div>
 
     <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'your-project-url'; // Replace with your Supabase project URL
+        const SUPABASE_ANON_KEY = 'your-anon-key'; // Replace with your Supabase anon key
+        
+        // Initialize Supabase client
+        let supabase = null;
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('Supabase client initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize Supabase client:', error);
+        }
+        
+        // Authentication state tracking
+        const authState = {
+            isAuthenticated: false,
+            user: null,
+            session: null
+        };
+        
         // CSV URL for dynamic loading (always pulls latest version)
         const CSV_URL = 'https://gist.githubusercontent.com/mvance/1096921b2243372780ccef1d82f1a156/raw/spelldle_lessons.csv';
 
