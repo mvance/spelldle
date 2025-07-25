@@ -3576,6 +3576,25 @@
             
             console.log('Authentication modal event listeners set up');
         }
+        
+        // Add keyboard support for authentication modal
+        document.addEventListener('keydown', function(event) {
+            const authModal = document.getElementById('authModal');
+            if (authModal.style.display === 'flex' && event.key === 'Escape') {
+                // Allow escape key to close auth modal (same as skip)
+                handleSkipAuth();
+            }
+        });
+        
+        // Handle browser navigation events
+        window.addEventListener('beforeunload', function(event) {
+            // Optional: warn user if they're leaving while authenticated
+            if (isAuthenticated()) {
+                // Don't show warning for now, but could add if needed
+                // event.preventDefault();
+                // event.returnValue = '';
+            }
+        });
     </script>
 </body>
 </html>
