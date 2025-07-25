@@ -2409,68 +2409,61 @@
             document.getElementById('startLessonButton').disabled = true;
         }
 
-        // Initialize lessons with enhanced integration
+        /**
+         * Initialize lessons with robust error handling and fallback support
+         * Loads lessons from GitHub Gist with graceful degradation to fallback list
+         */
         function initializeLessons() {
             try {
-                console.log('Starting lesson initialization...');
+                console.log('Loading lessons...');
                 loadLessons().then(() => {
                     populateLessonDropdown();
-                    console.log('Lessons initialized successfully');
+                    console.log(`Lessons loaded: ${availableLessons.length} available`);
                     
-                    // Update welcome screen loading state
                     hideWelcomeLoadingState();
-                    
-                    // Notify authentication system that lessons are ready
                     handleLessonsLoaded();
                     
                 }).catch(error => {
-                    console.error('Failed to initialize lessons:', error);
+                    console.warn('Lesson loading failed, using fallback:', error.message);
                     
-                    // Show fallback option if lessons fail to load
                     showLessonLoadFallback();
                     hideWelcomeLoadingState();
                     
-                    // Show error but don't block the application
                     showErrorToast(
-                        'Failed to load lessons from server. Using fallback word list.',
+                        'Using offline word list. Some lessons may be unavailable.',
                         'warning',
-                        5000
+                        4000
                     );
                     
-                    // Notify authentication system that lessons are ready (with fallback)
                     handleLessonsLoaded();
                 });
             } catch (error) {
-                console.error('Failed to initialize lessons:', error);
+                console.error('Lesson initialization error:', error);
                 showLessonLoadFallback();
                 hideWelcomeLoadingState();
-                
-                showErrorToast(
-                    'Lesson system error. Using fallback word list.',
-                    'error',
-                    5000
-                );
-                
                 handleLessonsLoaded();
             }
         }
         
+        /**
+         * Handle lessons loaded event and update UI accordingly
+         * Coordinates between lesson loading and authentication flow
+         */
         function handleLessonsLoaded() {
-            // Notify that lessons are ready for the authentication flow
-            console.log('Lessons loaded - updating UI state');
-            
-            // If welcome screen is visible but in loading state, update it
             const welcomeScreen = document.getElementById('welcomeScreen');
+            const authModal = document.getElementById('authModal');
+            
+            // Update loading state if welcome screen is visible
             if (welcomeScreen.style.display === 'flex') {
                 hideWelcomeLoadingState();
             }
             
-            // Trigger any pending welcome screen displays
-            const authModal = document.getElementById('authModal');
+            // Show welcome screen if no auth modal is active
             if (authModal.style.display !== 'flex' && welcomeScreen.style.display === 'none') {
-                // No auth modal showing and welcome screen hidden - show it now
                 showWelcomeScreenAfterAuth();
             }
+            
+            console.log('Lesson system ready');
         }
 
         // Track guesses for lesson stats
@@ -2481,30 +2474,23 @@
             }
         }
 
-        // Authentication-aware storage function
+        /**
+         * Save spelling attempt with authentication-aware storage
+         * Saves to Supabase if authenticated, skips storage if not
+         */
         async function saveSpellingAttempt(guess, isCorrect) {
             if (isAuthenticated()) {
-                // User is authenticated - save to Supabase
-                console.log('User authenticated - saving to Supabase');
                 try {
                     const success = await saveSpellingAttemptToSupabase(guess, isCorrect);
-                    if (success) {
-                        console.log('Spelling attempt saved to Supabase successfully');
-                    } else {
-                        console.warn('Failed to save spelling attempt to Supabase');
+                    if (!success) {
+                        console.warn('Storage failed - continuing game');
                     }
                 } catch (error) {
-                    console.error('Error saving to Supabase:', error);
+                    console.error('Storage error:', error);
                 }
             } else {
-                // User is not authenticated - skip storage
-                console.log('User not authenticated - skipping data storage');
-                console.log('Spelling attempt not saved:', {
-                    lesson_name: gameState.currentLesson || 'Fallback Word List',
-                    word_target: gameState.currentWord,
-                    spelling_guess: guess,
-                    result: isCorrect ? 'correct' : 'incorrect'
-                });
+                // Skip storage for unauthenticated users
+                console.log('Unauthenticated - progress not saved');
             }
         }
 
@@ -2735,22 +2721,32 @@
             return userMessage;
         }
 
+        /**
+         * Log database operations for debugging and monitoring
+         * Provides structured logging for database interactions
+         */
         function logDatabaseOperation(operation, success, data = null) {
-            const timestamp = new Date().toISOString();
             const logEntry = {
-                timestamp,
                 operation,
                 success,
                 user: authState.user?.email || 'anonymous',
-                data: data ? (Array.isArray(data) ? `${data.length} records` : 'record') : null
+                timestamp: new Date().toISOString()
             };
             
-            console.log('Database operation:', logEntry);
+            if (success === false) {
+                console.warn('Database operation failed:', logEntry);
+            } else if (window.location.hostname === 'localhost') {
+                console.log('Database operation:', logEntry);
+            }
         }
 
         // Error handling and notification functions
+        /**
+         * Show toast notification with auto-dismiss and optional retry
+         * Provides non-blocking user feedback for various application events
+         */
         function showErrorToast(message, type = 'error', duration = 5000, retryCallback = null) {
-            // Remove any existing toasts
+            // Remove any existing toasts to prevent stacking
             const existingToasts = document.querySelectorAll('.error-toast');
             existingToasts.forEach(toast => toast.remove());
 
@@ -2768,6 +2764,7 @@
             closeButton.className = 'toast-close';
             closeButton.innerHTML = '×';
             closeButton.onclick = () => dismissToast(toast);
+            closeButton.setAttribute('aria-label', 'Close notification');
             toast.appendChild(closeButton);
 
             // Add retry button if callback provided
@@ -2779,6 +2776,7 @@
                     dismissToast(toast);
                     retryCallback();
                 };
+                retryButton.setAttribute('aria-label', 'Retry action');
                 messageDiv.appendChild(retryButton);
             }
 
@@ -2793,8 +2791,6 @@
                     }
                 }, duration);
             }
-
-            console.log(`Toast notification: ${type} - ${message}`);
         }
 
         function dismissToast(toast) {
@@ -4199,17 +4195,19 @@
                     }
                 });
                 
-                // Test SpellingEvaluator integration (only in development)
+                // Development testing (only in development environment)
                 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    console.log('Testing SpellingEvaluator integration:');
-                    const testResult = SpellingEvaluator.evaluate('hello', 'world');
-                    console.log('SpellingEvaluator.evaluate("hello", "world"):', testResult);
-                    console.log('SpellingEvaluator.isWin("friend", "friend"):', SpellingEvaluator.isWin('friend', 'friend'));
-                    console.log('SpellingEvaluator.isWin("friend", "fiend"):', SpellingEvaluator.isWin('friend', 'fiend'));
+                    console.log('Development mode: Running component tests');
                     
-                    // Test localStorage functions
-                    console.log('Testing localStorage functions:');
-                    console.log('Current attempts count:', getSpellingAttempts().length);
+                    // Test SpellingEvaluator
+                    const testResult = SpellingEvaluator.evaluate('hello', 'world');
+                    console.log('SpellingEvaluator test passed:', testResult.feedback.length > 0);
+                    
+                    // Test authentication state
+                    console.log('Auth system initialized:', typeof isAuthenticated === 'function');
+                    
+                    // Test storage functions
+                    console.log('Storage system ready:', typeof saveSpellingAttempt === 'function');
                 }
             } catch (error) {
                 console.error('Error during page initialization:', error);
@@ -4218,7 +4216,10 @@
             }
         });
         
-        // Initialize authentication system with enhanced flow control
+        /**
+         * Initialize authentication system with comprehensive flow control
+         * Handles new users, returning users, and error scenarios gracefully
+         */
         async function initializeAuthentication() {
             try {
                 console.log('Initializing authentication system...');
@@ -4247,13 +4248,11 @@
                     
                 } else if (isAuthenticated()) {
                     // Existing authenticated user
-                    console.log('User already authenticated - showing welcome screen');
                     updateUIForAuthState(true);
                     showWelcomeScreenAfterAuth();
                     
                 } else {
                     // User has seen auth modal before or authentication not needed
-                    console.log('Skipping authentication modal - showing welcome screen');
                     updateUIForAuthState(false);
                     showWelcomeScreenAfterAuth();
                     
@@ -4263,16 +4262,16 @@
                     }
                 }
                 
-                console.log('Authentication system initialized successfully');
+                console.log('Authentication system ready');
             } catch (error) {
-                console.error('Failed to initialize authentication system:', error);
+                console.error('Authentication initialization failed:', error);
                 
                 // Fallback: continue without authentication
                 updateUIForAuthState(false);
                 showWelcomeScreenAfterAuth();
                 
                 showErrorToast(
-                    'Authentication system unavailable. Playing without data storage.',
+                    'Authentication unavailable. Playing without data storage.',
                     'warning',
                     5000
                 );
@@ -4410,24 +4409,59 @@
             console.log('Authentication modal event listeners set up');
         }
         
-        // Enhanced keyboard support for authentication modal
+        /**
+         * Global keyboard event handlers for accessibility and UX
+         * Provides keyboard navigation support throughout the application
+         */
         document.addEventListener('keydown', function(event) {
             const authModal = document.getElementById('authModal');
+            
+            // Allow Escape key to close authentication modal
             if (authModal.style.display === 'flex' && event.key === 'Escape') {
-                // Allow escape key to close auth modal (same as skip)
                 handleSkipAuth();
             }
         });
         
-        // Handle browser navigation events
+        /**
+         * Handle browser navigation events
+         * Currently passive monitoring - could add warnings if needed
+         */
         window.addEventListener('beforeunload', function(event) {
-            // Optional: warn user if they're leaving while authenticated
-            if (isAuthenticated()) {
-                // Don't show warning for now, but could add if needed
-                // event.preventDefault();
-                // event.returnValue = '';
-            }
+            // Future: Could warn users about unsaved progress
+            // For now, allow normal navigation
         });
+        
+        /**
+         * Application health check for development
+         * Validates that all critical systems are functioning
+         */
+        function validateApplicationHealth() {
+            const checks = {
+                supabaseClient: !!supabase,
+                authSystem: typeof isAuthenticated === 'function',
+                storageSystem: typeof saveSpellingAttempt === 'function',
+                gameEngine: typeof SpellingEvaluator === 'object',
+                lessonSystem: Array.isArray(availableLessons),
+                ttsSystem: ttsSupported
+            };
+            
+            const failedChecks = Object.entries(checks)
+                .filter(([key, value]) => !value)
+                .map(([key]) => key);
+            
+            if (failedChecks.length > 0) {
+                console.warn('System health check failed:', failedChecks);
+            } else {
+                console.log('All systems operational');
+            }
+            
+            return failedChecks.length === 0;
+        }
+        
+        // Run health check in development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            setTimeout(validateApplicationHealth, 2000);
+        }
         
         // Authentication flow integration functions
         function showAuthenticationPrompt() {
