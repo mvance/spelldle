@@ -1169,10 +1169,7 @@
             
             try {
                 console.log('Setting up authentication state listener...');
-                supabase.auth.onAuthStateChange((event, session) => {
-                    console.log('Auth state change event:', event, session?.user?.email || 'no user');
-                    updateAuthState(session);
-                });
+                return setupSupabaseAuthListener();
             } catch (error) {
                 console.error('Failed to setup auth state listener:', error);
             }
@@ -1278,33 +1275,6 @@
             backButton.disabled = false;
         }
         
-        async function sendOTP(email) {
-            if (!supabase) {
-                throw new Error('Supabase client not available');
-            }
-            
-            try {
-                console.log('Sending OTP to:', email);
-                const { data, error } = await supabase.auth.signInWithOtp({
-                    email: email,
-                    options: {
-                        shouldCreateUser: true
-                    }
-                });
-                
-                if (error) {
-                    console.error('OTP send error:', error);
-                    throw error;
-                }
-                
-                console.log('OTP sent successfully:', data);
-                return data;
-            } catch (error) {
-                console.error('Failed to send OTP:', error);
-                throw error;
-            }
-        }
-        
         function transitionToOtpPhase(email) {
             // Hide email phase and show OTP phase
             document.getElementById('emailPhase').style.display = 'none';
@@ -1367,24 +1337,13 @@
             setEmailButtonLoading(true);
             
             try {
-                await sendOTP(email);
+                await signInWithEmail(email);
                 
                 // Success - transition to OTP phase
                 transitionToOtpPhase(email);
                 
             } catch (error) {
-                // Handle specific error types
-                let errorMessage = 'Failed to send verification code. Please try again.';
-                
-                if (error.message?.includes('rate limit')) {
-                    errorMessage = 'Too many requests. Please wait a moment before trying again.';
-                } else if (error.message?.includes('invalid email')) {
-                    errorMessage = 'Please enter a valid email address.';
-                } else if (error.message?.includes('network')) {
-                    errorMessage = 'Network error. Please check your connection and try again.';
-                }
-                
-                showEmailError(errorMessage);
+                showEmailError(error.message);
                 console.error('Email submit error:', error);
             } finally {
                 // Reset loading state
@@ -1404,32 +1363,6 @@
             // Check if OTP is exactly 6 digits
             const otpRegex = /^[0-9]{6}$/;
             return otpRegex.test(otp);
-        }
-        
-        async function verifyOTP(email, otp) {
-            if (!supabase) {
-                throw new Error('Supabase client not available');
-            }
-            
-            try {
-                console.log('Verifying OTP for:', email);
-                const { data, error } = await supabase.auth.verifyOtp({
-                    email: email,
-                    token: otp,
-                    type: 'email'
-                });
-                
-                if (error) {
-                    console.error('OTP verification error:', error);
-                    throw error;
-                }
-                
-                console.log('OTP verified successfully:', data);
-                return data;
-            } catch (error) {
-                console.error('Failed to verify OTP:', error);
-                throw error;
-            }
         }
         
         function setOtpButtonLoading(loading) {
@@ -1488,27 +1421,14 @@
             setOtpButtonLoading(true);
             
             try {
-                await verifyOTP(email, otp);
+                await verifyEmailOTP(email, otp);
                 
                 // Success - authentication complete
                 console.log('Authentication successful for:', email);
-                hideAuthModal();
-                
-                // The auth state will be updated automatically by the auth state listener
+                // Modal will be hidden by the auth state change listener
                 
             } catch (error) {
-                // Handle specific error types
-                let errorMessage = 'Failed to verify code. Please try again.';
-                
-                if (error.message?.includes('invalid') || error.message?.includes('expired')) {
-                    errorMessage = 'Invalid or expired verification code. Please try again.';
-                } else if (error.message?.includes('too many')) {
-                    errorMessage = 'Too many attempts. Please request a new code.';
-                } else if (error.message?.includes('network')) {
-                    errorMessage = 'Network error. Please check your connection and try again.';
-                }
-                
-                showOtpError(errorMessage);
+                showOtpError(error.message);
                 console.error('OTP verification error:', error);
                 
                 // Focus OTP input for retry
@@ -1528,7 +1448,7 @@
             hideOtpError();
             
             try {
-                await sendOTP(email);
+                await signInWithEmail(email);
                 
                 // Success - start cooldown timer
                 setResendButtonCooldown(60);
@@ -1553,6 +1473,188 @@
                 showOtpError(errorMessage);
                 console.error('OTP resend error:', error);
             }
+        }
+        
+        // Supabase Authentication Service Functions
+        async function signInWithEmail(email) {
+            if (!supabase) {
+                throw new Error('Supabase client not available');
+            }
+            
+            try {
+                console.log('Signing in with email:', email);
+                const { data, error } = await supabase.auth.signInWithOtp({
+                    email: email,
+                    options: {
+                        shouldCreateUser: true,
+                        emailRedirectTo: window.location.origin
+                    }
+                });
+                
+                if (error) {
+                    console.error('Sign in error:', error);
+                    throw new Error(getAuthErrorMessage(error));
+                }
+                
+                console.log('Sign in successful:', data);
+                return data;
+            } catch (error) {
+                console.error('Failed to sign in with email:', error);
+                throw error;
+            }
+        }
+        
+        async function verifyEmailOTP(email, token) {
+            if (!supabase) {
+                throw new Error('Supabase client not available');
+            }
+            
+            try {
+                console.log('Verifying OTP for email:', email);
+                const { data, error } = await supabase.auth.verifyOtp({
+                    email: email,
+                    token: token,
+                    type: 'email'
+                });
+                
+                if (error) {
+                    console.error('OTP verification error:', error);
+                    throw new Error(getAuthErrorMessage(error));
+                }
+                
+                console.log('OTP verification successful:', data);
+                return data;
+            } catch (error) {
+                console.error('Failed to verify OTP:', error);
+                throw error;
+            }
+        }
+        
+        async function signOut() {
+            if (!supabase) {
+                throw new Error('Supabase client not available');
+            }
+            
+            try {
+                console.log('Signing out user');
+                const { error } = await supabase.auth.signOut();
+                
+                if (error) {
+                    console.error('Sign out error:', error);
+                    throw new Error(getAuthErrorMessage(error));
+                }
+                
+                console.log('Sign out successful');
+                return true;
+            } catch (error) {
+                console.error('Failed to sign out:', error);
+                throw error;
+            }
+        }
+        
+        async function getCurrentSession() {
+            if (!supabase) {
+                console.log('Supabase client not available');
+                return null;
+            }
+            
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('Get session error:', error);
+                    throw new Error(getAuthErrorMessage(error));
+                }
+                
+                return session;
+            } catch (error) {
+                console.error('Failed to get current session:', error);
+                return null;
+            }
+        }
+        
+        function getAuthErrorMessage(error) {
+            // Map Supabase error codes to user-friendly messages
+            const errorCode = error.message || error.error_description || '';
+            
+            if (errorCode.includes('Invalid login credentials')) {
+                return 'Invalid email or verification code. Please try again.';
+            } else if (errorCode.includes('Email rate limit exceeded')) {
+                return 'Too many email requests. Please wait before requesting another code.';
+            } else if (errorCode.includes('Token has expired')) {
+                return 'Verification code has expired. Please request a new one.';
+            } else if (errorCode.includes('Invalid token')) {
+                return 'Invalid verification code. Please check and try again.';
+            } else if (errorCode.includes('Email not confirmed')) {
+                return 'Please verify your email address first.';
+            } else if (errorCode.includes('User not found')) {
+                return 'No account found with this email address.';
+            } else if (errorCode.includes('Network request failed')) {
+                return 'Network error. Please check your connection and try again.';
+            } else if (errorCode.includes('fetch')) {
+                return 'Connection error. Please check your internet connection.';
+            } else {
+                return error.message || 'An unexpected error occurred. Please try again.';
+            }
+        }
+        
+        function setupSupabaseAuthListener() {
+            if (!supabase) {
+                console.log('Supabase client not available, skipping auth listener setup');
+                return;
+            }
+            
+            try {
+                console.log('Setting up Supabase authentication listener...');
+                const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('Supabase auth state change:', event, session?.user?.email || 'no user');
+                    
+                    // Update our auth state
+                    updateAuthState(session);
+                    
+                    // Handle specific auth events
+                    switch (event) {
+                        case 'SIGNED_IN':
+                            console.log('User signed in:', session.user.email);
+                            handleSuccessfulSignIn(session);
+                            break;
+                        case 'SIGNED_OUT':
+                            console.log('User signed out');
+                            handleSignOut();
+                            break;
+                        case 'TOKEN_REFRESHED':
+                            console.log('Token refreshed for user:', session.user.email);
+                            break;
+                        case 'USER_UPDATED':
+                            console.log('User updated:', session.user.email);
+                            break;
+                        default:
+                            console.log('Auth event:', event);
+                    }
+                });
+                
+                return subscription;
+            } catch (error) {
+                console.error('Failed to setup Supabase auth listener:', error);
+            }
+        }
+        
+        function handleSuccessfulSignIn(session) {
+            // Close authentication modal if open
+            hideAuthModal();
+            
+            // Update UI to reflect authenticated state
+            console.log('Authentication successful, user logged in:', session.user.email);
+            
+            // Could add user feedback here (toast notification, etc.)
+        }
+        
+        function handleSignOut() {
+            // Update UI to reflect unauthenticated state
+            console.log('User signed out, updating UI state');
+            
+            // Could add user feedback here (toast notification, etc.)
+            // Could redirect to welcome screen if desired
         }
         
         // CSV URL for dynamic loading (always pulls latest version)
