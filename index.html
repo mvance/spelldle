@@ -1044,11 +1044,11 @@
             color: #ffffff;
         }
 
-        a#signInLink,
-        a#signInLink:link,
-        a#signInLink:visited,
-        a#signInLink:hover,
-        a#signInLink:active {
+        /* Sign In Link - High Contrast Styling */
+        #signInLink,
+        a[id="signInLink"],
+        .sign-in-link,
+        #headerControls a[href="#"]:not(#logoutLink) {
             color: #000000 !important;
             text-decoration: none !important;
             font-size: 14px !important;
@@ -1062,48 +1062,36 @@
             box-sizing: border-box !important;
         }
 
-        a#signInLink:hover {
-            background-color: #f0f0f0 !important;
-            border-color: #f0f0f0 !important;
-        }
-
-        a#signInLink:active {
-            background-color: #e0e0e0 !important;
-            border-color: #e0e0e0 !important;
-        }
-
-        .sign-in-link {
+        #signInLink:link,
+        #signInLink:visited,
+        a[id="signInLink"]:link,
+        a[id="signInLink"]:visited,
+        .sign-in-link:link,
+        .sign-in-link:visited,
+        #headerControls a[href="#"]:not(#logoutLink):link,
+        #headerControls a[href="#"]:not(#logoutLink):visited {
             color: #000000 !important;
-            text-decoration: none !important;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.2s;
             background-color: #ffffff !important;
-            border: 2px solid #ffffff !important;
-            display: inline-block !important;
+            border-color: #ffffff !important;
         }
 
-        .sign-in-link:hover {
+        #signInLink:hover,
+        a[id="signInLink"]:hover,
+        .sign-in-link:hover,
+        #headerControls a[href="#"]:not(#logoutLink):hover {
+            color: #000000 !important;
             background-color: #f0f0f0 !important;
             border-color: #f0f0f0 !important;
-            color: #000000 !important;
             text-decoration: none !important;
         }
 
-        .sign-in-link:active {
+        #signInLink:active,
+        a[id="signInLink"]:active,
+        .sign-in-link:active,
+        #headerControls a[href="#"]:not(#logoutLink):active {
+            color: #000000 !important;
             background-color: #e0e0e0 !important;
             border-color: #e0e0e0 !important;
-            color: #000000 !important;
-        }
-
-        .sign-in-link:visited {
-            color: #000000 !important;
-        }
-
-        .sign-in-link:link {
-            color: #000000 !important;
         }
 
         /* Loading state styling */
