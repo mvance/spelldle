@@ -1000,10 +1000,107 @@
                 font-size: 13px;
                 padding: 9px 14px;
             }
+        /* Header Controls Styling */
+        .header-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1500;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .auth-status {
+            font-size: 12px;
+            color: #b0b0b0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+
+        .logout-link {
+            color: var(--blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            background-color: rgba(90, 159, 212, 0.1);
+            border: 1px solid transparent;
+        }
+
+        .logout-link:hover {
+            background-color: rgba(90, 159, 212, 0.2);
+            border-color: var(--blue);
+            text-decoration: none;
+        }
+
+        .logout-link:active {
+            background-color: rgba(90, 159, 212, 0.3);
+        }
+
+        .sign-in-link {
+            color: var(--blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            background-color: rgba(90, 159, 212, 0.1);
+            border: 1px solid var(--blue);
+        }
+
+        .sign-in-link:hover {
+            background-color: var(--blue);
+            color: white;
+            text-decoration: none;
+        }
+
+        .sign-in-link:active {
+            background-color: #4a8fc4;
+        }
+
+        /* Responsive header controls */
+        @media (max-width: 768px) {
+            .header-controls {
+                top: 10px;
+                right: 10px;
+                gap: 10px;
+            }
+            
+            .logout-link, .sign-in-link {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+            
+            .auth-status {
+                font-size: 11px;
+                padding: 3px 6px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-controls {
+                position: relative;
+                top: 0;
+                right: 0;
+                justify-content: center;
+                margin-bottom: 10px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Header Controls -->
+    <div class="header-controls" id="headerControls">
+        <div class="auth-status" id="authStatus" style="display: none;"></div>
+        <a href="#" class="logout-link" id="logoutLink" style="display: none;">Sign Out</a>
+        <a href="#" class="sign-in-link" id="signInLink" style="display: none;">Sign In</a>
+    </div>
+
     <div class="progress-counter" id="progressCounter" style="display: none;">Word 1 of 12</div>
     
     <div class="game-container" id="gameContainer">
@@ -1810,17 +1907,32 @@
                     return;
                 }
                 
+                // Disable logout link during sign out process
+                const logoutLink = document.getElementById('logoutLink');
+                const originalText = logoutLink.textContent;
+                logoutLink.textContent = 'Signing out...';
+                logoutLink.style.pointerEvents = 'none';
+                logoutLink.style.opacity = '0.6';
+                
                 // Call Supabase sign out
                 await signOut();
                 
                 console.log('Sign out completed successfully');
+                showErrorToast('Successfully signed out', 'info', 3000);
                 
                 // The auth state listener will handle UI updates automatically
                 
             } catch (error) {
                 console.error('Failed to sign out:', error);
-                // Show error message but don't block the user
-                alert('Sign out failed. Please try again.');
+                
+                // Reset logout link state
+                const logoutLink = document.getElementById('logoutLink');
+                logoutLink.textContent = 'Sign Out';
+                logoutLink.style.pointerEvents = 'auto';
+                logoutLink.style.opacity = '1';
+                
+                // Show error message
+                showErrorToast('Sign out failed. Please try again.', 'error', 5000);
             }
         }
         
@@ -1846,8 +1958,51 @@
         }
         
         function updateHeaderControls(isAuthenticated) {
-            // For now, just log the state - header controls will be added in Step 14
-            console.log('Header controls update:', isAuthenticated ? 'show logout' : 'hide logout');
+            const logoutLink = document.getElementById('logoutLink');
+            const signInLink = document.getElementById('signInLink');
+            const authStatus = document.getElementById('authStatus');
+            
+            if (isAuthenticated) {
+                // Show logout link and auth status
+                logoutLink.style.display = 'block';
+                signInLink.style.display = 'none';
+                
+                // Show user email in auth status
+                if (authState.user && authState.user.email) {
+                    authStatus.textContent = `Signed in as ${authState.user.email}`;
+                    authStatus.style.display = 'block';
+                } else {
+                    authStatus.style.display = 'none';
+                }
+                
+                console.log('Header controls: showing logout for authenticated user');
+            } else {
+                // Show sign in link, hide logout and auth status
+                logoutLink.style.display = 'none';
+                signInLink.style.display = 'block';
+                authStatus.style.display = 'none';
+                
+                console.log('Header controls: showing sign in for unauthenticated user');
+            }
+        }
+        
+        function setupHeaderControlsEventListeners() {
+            const logoutLink = document.getElementById('logoutLink');
+            const signInLink = document.getElementById('signInLink');
+            
+            // Logout link event listener
+            logoutLink.addEventListener('click', function(event) {
+                event.preventDefault();
+                handleSignOutAction();
+            });
+            
+            // Sign in link event listener
+            signInLink.addEventListener('click', function(event) {
+                event.preventDefault();
+                showAuthModal();
+            });
+            
+            console.log('Header controls event listeners set up');
         }
         
         function updateAuthStatusIndicators(isAuthenticated) {
@@ -3966,6 +4121,9 @@
                 
                 // Set up authentication modal event listeners first
                 setupAuthModalEventListeners();
+                
+                // Set up header controls event listeners
+                setupHeaderControlsEventListeners();
                 
                 // Start lesson loading in parallel with authentication
                 initializeLessons();
