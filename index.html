@@ -815,6 +815,92 @@
             font-weight: bold;
         }
 
+        /* Error Toast Styling */
+        .error-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #d73a49;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 3000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            word-wrap: break-word;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        .error-toast.success {
+            background-color: var(--green);
+        }
+
+        .error-toast.warning {
+            background-color: #f39c12;
+            color: #000;
+        }
+
+        .error-toast.info {
+            background-color: var(--blue);
+        }
+
+        .error-toast .toast-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .error-toast .toast-close:hover {
+            opacity: 0.7;
+        }
+
+        .error-toast .toast-retry {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: inherit;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
+        .error-toast .toast-retry:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
         /* Responsive design for authentication modal */
         @media (max-width: 768px) {
             .auth-modal-content {
@@ -838,6 +924,13 @@
             .auth-button {
                 font-size: 15px;
                 padding: 11px 20px;
+            }
+
+            .error-toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
             }
         }
 
@@ -1343,14 +1436,25 @@
             setEmailButtonLoading(true);
             
             try {
-                await signInWithEmail(email);
+                // Use retry logic for email submission
+                await retryOperation(async () => {
+                    return await signInWithEmail(email);
+                }, 2, 1000);
                 
                 // Success - transition to OTP phase
                 transitionToOtpPhase(email);
                 
+                // Show success feedback
+                showErrorToast('Verification code sent to your email!', 'success', 3000);
+                
             } catch (error) {
-                showEmailError(error.message);
-                console.error('Email submit error:', error);
+                const errorDetails = handleAuthenticationError(error, 'email sending', 'email');
+                
+                // Focus email input for retry if it's a user error
+                if (!errorDetails.retryable) {
+                    emailInput.focus();
+                    emailInput.select();
+                }
             } finally {
                 // Reset loading state
                 setEmailButtonLoading(false);
@@ -1440,15 +1544,24 @@
                 
                 // Success - authentication complete
                 console.log('Authentication successful for:', email);
+                showErrorToast('Successfully signed in!', 'success', 3000);
                 // Modal will be hidden by the auth state change listener
                 
             } catch (error) {
-                showOtpError(error.message);
-                console.error('OTP verification error:', error);
+                const errorDetails = handleAuthenticationError(error, 'OTP verification', 'otp');
                 
                 // Focus OTP input for retry
                 otpInput.focus();
                 otpInput.select();
+                
+                // If token expired, suggest resending
+                if (errorDetails.type === 'expired_token') {
+                    showErrorToast(
+                        'Verification code expired. Click "Resend Code" to get a new one.',
+                        'warning',
+                        7000
+                    );
+                }
             } finally {
                 // Reset loading state
                 setOtpButtonLoading(false);
@@ -1463,7 +1576,10 @@
             hideOtpError();
             
             try {
-                await signInWithEmail(email);
+                // Use retry logic for resend
+                await retryOperation(async () => {
+                    return await signInWithEmail(email);
+                }, 2, 1000);
                 
                 // Success - start cooldown timer
                 setResendButtonCooldown(60);
@@ -1471,22 +1587,17 @@
                 
                 // Show success feedback
                 showOtpError('New verification code sent to your email.');
+                showErrorToast('New verification code sent!', 'success', 3000);
+                
                 setTimeout(() => {
                     hideOtpError();
                 }, 3000);
                 
             } catch (error) {
-                // Handle specific error types
-                let errorMessage = 'Failed to resend verification code. Please try again.';
+                const errorDetails = handleAuthenticationError(error, 'OTP resend', 'otp');
                 
-                if (error.message?.includes('rate limit')) {
-                    errorMessage = 'Too many requests. Please wait before requesting another code.';
-                } else if (error.message?.includes('network')) {
-                    errorMessage = 'Network error. Please check your connection and try again.';
-                }
-                
-                showOtpError(errorMessage);
-                console.error('OTP resend error:', error);
+                // Don't start cooldown on failure
+                console.error('OTP resend failed:', error);
             }
         }
         
@@ -2243,33 +2354,36 @@
                 console.log('Saving spelling attempt to Supabase...');
                 logDatabaseOperation('save_attempt', null, { guess, isCorrect });
                 
-                const { data, error } = await supabase
-                    .from('spelling_attempts')
-                    .insert({
-                        user_id: authState.user.id,
-                        lesson_name: gameState.currentLesson || 'Fallback Word List',
-                        word_target: gameState.currentWord,
-                        spelling_guess: guess,
-                        result: isCorrect ? 'correct' : 'incorrect'
-                    });
-                
-                if (error) {
-                    console.error('Error saving to Supabase:', error);
-                    logDatabaseOperation('save_attempt', false, error);
+                // Use retry logic for storage operations
+                const result = await retryOperation(async () => {
+                    const { data, error } = await supabase
+                        .from('spelling_attempts')
+                        .insert({
+                            user_id: authState.user.id,
+                            lesson_name: gameState.currentLesson || 'Fallback Word List',
+                            word_target: gameState.currentWord,
+                            spelling_guess: guess,
+                            result: isCorrect ? 'correct' : 'incorrect'
+                        });
                     
-                    // Handle specific error types
-                    const userMessage = handleSupabaseError(error, 'save spelling attempt');
-                    console.warn('Storage error (non-blocking):', userMessage);
+                    if (error) {
+                        throw error;
+                    }
                     
-                    throw error;
-                }
+                    return data;
+                }, 3, 1000);
                 
-                console.log('Spelling attempt saved to Supabase:', data);
-                logDatabaseOperation('save_attempt', true, data);
+                console.log('Spelling attempt saved to Supabase:', result);
+                logDatabaseOperation('save_attempt', true, result);
                 return true;
+                
             } catch (error) {
                 console.error('Failed to save spelling attempt to Supabase:', error);
                 logDatabaseOperation('save_attempt', false, error);
+                
+                // Handle storage error with user feedback
+                handleStorageError(error, 'save progress');
+                
                 return false;
             }
         }
@@ -2283,21 +2397,30 @@
             try {
                 console.log('Retrieving spelling attempts from Supabase...');
                 
-                const { data, error } = await supabase
-                    .from('spelling_attempts')
-                    .select('*')
-                    .eq('user_id', authState.user.id)
-                    .order('created_at', { ascending: false });
-                
-                if (error) {
-                    console.error('Error retrieving from Supabase:', error);
-                    throw error;
-                }
+                // Use retry logic for data retrieval
+                const data = await retryOperation(async () => {
+                    const { data, error } = await supabase
+                        .from('spelling_attempts')
+                        .select('*')
+                        .eq('user_id', authState.user.id)
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    return data;
+                }, 3, 1000);
                 
                 console.log(`Retrieved ${data.length} spelling attempts from Supabase`);
                 return data;
+                
             } catch (error) {
                 console.error('Failed to retrieve spelling attempts from Supabase:', error);
+                
+                // Handle retrieval error with user feedback
+                handleStorageError(error, 'load progress data');
+                
                 return [];
             }
         }
@@ -2413,6 +2536,246 @@
             };
             
             console.log('Database operation:', logEntry);
+        }
+
+        // Error handling and notification functions
+        function showErrorToast(message, type = 'error', duration = 5000, retryCallback = null) {
+            // Remove any existing toasts
+            const existingToasts = document.querySelectorAll('.error-toast');
+            existingToasts.forEach(toast => toast.remove());
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `error-toast ${type}`;
+            
+            // Create message content
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = message;
+            toast.appendChild(messageDiv);
+
+            // Add close button
+            const closeButton = document.createElement('button');
+            closeButton.className = 'toast-close';
+            closeButton.innerHTML = '×';
+            closeButton.onclick = () => dismissToast(toast);
+            toast.appendChild(closeButton);
+
+            // Add retry button if callback provided
+            if (retryCallback) {
+                const retryButton = document.createElement('button');
+                retryButton.className = 'toast-retry';
+                retryButton.textContent = 'Retry';
+                retryButton.onclick = () => {
+                    dismissToast(toast);
+                    retryCallback();
+                };
+                messageDiv.appendChild(retryButton);
+            }
+
+            // Add to page
+            document.body.appendChild(toast);
+
+            // Auto-dismiss after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        dismissToast(toast);
+                    }
+                }, duration);
+            }
+
+            console.log(`Toast notification: ${type} - ${message}`);
+        }
+
+        function dismissToast(toast) {
+            toast.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }
+
+        function showAuthError(message, phase = 'email') {
+            if (phase === 'email') {
+                showEmailError(message);
+            } else if (phase === 'otp') {
+                showOtpError(message);
+            }
+        }
+
+        function getDetailedAuthError(error) {
+            const errorCode = error.message || error.error_description || '';
+            
+            // Network and connection errors
+            if (errorCode.includes('fetch') || errorCode.includes('Network request failed')) {
+                return {
+                    message: 'Connection error. Please check your internet connection and try again.',
+                    type: 'network',
+                    retryable: true
+                };
+            }
+            
+            // Rate limiting errors
+            if (errorCode.includes('Email rate limit exceeded') || errorCode.includes('rate limit')) {
+                return {
+                    message: 'Too many requests. Please wait a moment before trying again.',
+                    type: 'rate_limit',
+                    retryable: true
+                };
+            }
+            
+            // Authentication specific errors
+            if (errorCode.includes('Invalid login credentials')) {
+                return {
+                    message: 'Invalid email or verification code. Please check and try again.',
+                    type: 'invalid_credentials',
+                    retryable: false
+                };
+            }
+            
+            if (errorCode.includes('Token has expired') || errorCode.includes('expired')) {
+                return {
+                    message: 'Verification code has expired. Please request a new one.',
+                    type: 'expired_token',
+                    retryable: true
+                };
+            }
+            
+            if (errorCode.includes('Invalid token')) {
+                return {
+                    message: 'Invalid verification code. Please check the code and try again.',
+                    type: 'invalid_token',
+                    retryable: false
+                };
+            }
+            
+            if (errorCode.includes('Email not confirmed')) {
+                return {
+                    message: 'Please verify your email address first.',
+                    type: 'email_not_confirmed',
+                    retryable: false
+                };
+            }
+            
+            if (errorCode.includes('User not found')) {
+                return {
+                    message: 'No account found with this email address.',
+                    type: 'user_not_found',
+                    retryable: false
+                };
+            }
+            
+            // Database errors
+            if (errorCode.includes('JWT expired')) {
+                return {
+                    message: 'Your session has expired. Please sign in again.',
+                    type: 'session_expired',
+                    retryable: true
+                };
+            }
+            
+            if (errorCode.includes('permission denied')) {
+                return {
+                    message: 'Permission denied. Please sign in again.',
+                    type: 'permission_denied',
+                    retryable: true
+                };
+            }
+            
+            if (errorCode.includes('relation') && errorCode.includes('does not exist')) {
+                return {
+                    message: 'Database configuration error. Please contact support.',
+                    type: 'database_config',
+                    retryable: false
+                };
+            }
+            
+            // Generic fallback
+            return {
+                message: error.message || 'An unexpected error occurred. Please try again.',
+                type: 'unknown',
+                retryable: true
+            };
+        }
+
+        // Retry logic with exponential backoff
+        async function retryOperation(operation, maxRetries = 3, baseDelay = 1000) {
+            let lastError;
+            
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`Attempt ${attempt}/${maxRetries} for operation`);
+                    return await operation();
+                } catch (error) {
+                    lastError = error;
+                    const errorDetails = getDetailedAuthError(error);
+                    
+                    // Don't retry non-retryable errors
+                    if (!errorDetails.retryable) {
+                        throw error;
+                    }
+                    
+                    // Don't retry on last attempt
+                    if (attempt === maxRetries) {
+                        break;
+                    }
+                    
+                    // Calculate delay with exponential backoff
+                    const delay = baseDelay * Math.pow(2, attempt - 1);
+                    console.log(`Operation failed, retrying in ${delay}ms...`);
+                    
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            
+            throw lastError;
+        }
+
+        // Enhanced error handling for storage operations
+        function handleStorageError(error, operation) {
+            const errorDetails = getDetailedAuthError(error);
+            
+            console.error(`Storage ${operation} error:`, error);
+            
+            // Show non-blocking error notification
+            showErrorToast(
+                `Failed to ${operation}: ${errorDetails.message}`,
+                'error',
+                7000,
+                errorDetails.retryable ? () => {
+                    console.log(`Retrying ${operation} operation`);
+                    // The retry callback would need to be passed from the calling function
+                } : null
+            );
+            
+            // Handle session expiration
+            if (errorDetails.type === 'session_expired') {
+                handleSessionExpiration();
+            }
+            
+            return errorDetails;
+        }
+
+        // Enhanced error handling for authentication operations
+        function handleAuthenticationError(error, operation, phase = 'email') {
+            const errorDetails = getDetailedAuthError(error);
+            
+            console.error(`Authentication ${operation} error:`, error);
+            
+            // Show error in authentication modal
+            showAuthError(errorDetails.message, phase);
+            
+            // Also show toast for persistent errors
+            if (errorDetails.type === 'network' || errorDetails.type === 'rate_limit') {
+                showErrorToast(
+                    `${operation} failed: ${errorDetails.message}`,
+                    'warning',
+                    5000
+                );
+            }
+            
+            return errorDetails;
         }
 
         /**
@@ -2782,8 +3145,15 @@
             // Clear the auth modal seen flag so user can authenticate again
             clearAuthModalSeen();
             
-            // Optionally show a message to the user
-            console.log('Your session has expired. Sign in again to continue saving progress.');
+            // Show user-friendly notification
+            showErrorToast(
+                'Your session has expired. Sign in again to continue saving progress.',
+                'warning',
+                8000,
+                () => {
+                    showAuthModal();
+                }
+            );
         }
         
         // Enhanced auth state listener to handle session expiration
