@@ -2205,6 +2205,180 @@
             }
         }
 
+        // Supabase data storage functions
+        async function saveSpellingAttemptToSupabase(guess, isCorrect) {
+            if (!supabase || !isAuthenticated()) {
+                console.log('Supabase not available or user not authenticated');
+                return false;
+            }
+            
+            try {
+                console.log('Saving spelling attempt to Supabase...');
+                
+                const { data, error } = await supabase
+                    .from('spelling_attempts')
+                    .insert({
+                        user_id: authState.user.id,
+                        lesson_name: gameState.currentLesson || 'Fallback Word List',
+                        word_target: gameState.currentWord,
+                        spelling_guess: guess,
+                        result: isCorrect ? 'correct' : 'incorrect'
+                    });
+                
+                if (error) {
+                    console.error('Error saving to Supabase:', error);
+                    throw error;
+                }
+                
+                console.log('Spelling attempt saved to Supabase:', data);
+                return true;
+            } catch (error) {
+                console.error('Failed to save spelling attempt to Supabase:', error);
+                return false;
+            }
+        }
+
+        async function getSpellingAttemptsFromSupabase() {
+            if (!supabase || !isAuthenticated()) {
+                console.log('Supabase not available or user not authenticated');
+                return [];
+            }
+            
+            try {
+                console.log('Retrieving spelling attempts from Supabase...');
+                
+                const { data, error } = await supabase
+                    .from('spelling_attempts')
+                    .select('*')
+                    .eq('user_id', authState.user.id)
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.error('Error retrieving from Supabase:', error);
+                    throw error;
+                }
+                
+                console.log(`Retrieved ${data.length} spelling attempts from Supabase`);
+                return data;
+            } catch (error) {
+                console.error('Failed to retrieve spelling attempts from Supabase:', error);
+                return [];
+            }
+        }
+
+        async function getSpellingStatsFromSupabase() {
+            if (!supabase || !isAuthenticated()) {
+                console.log('Supabase not available or user not authenticated');
+                return null;
+            }
+            
+            try {
+                console.log('Calculating spelling stats from Supabase...');
+                
+                const { data, error } = await supabase
+                    .from('spelling_attempts')
+                    .select('result, lesson_name')
+                    .eq('user_id', authState.user.id);
+                
+                if (error) {
+                    console.error('Error calculating stats from Supabase:', error);
+                    throw error;
+                }
+                
+                // Calculate statistics
+                const totalAttempts = data.length;
+                const correctAttempts = data.filter(attempt => attempt.result === 'correct').length;
+                const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+                
+                // Group by lesson
+                const lessonStats = {};
+                data.forEach(attempt => {
+                    const lesson = attempt.lesson_name;
+                    if (!lessonStats[lesson]) {
+                        lessonStats[lesson] = { total: 0, correct: 0 };
+                    }
+                    lessonStats[lesson].total++;
+                    if (attempt.result === 'correct') {
+                        lessonStats[lesson].correct++;
+                    }
+                });
+                
+                const stats = {
+                    totalAttempts,
+                    correctAttempts,
+                    accuracy,
+                    lessonStats
+                };
+                
+                console.log('Calculated spelling stats:', stats);
+                return stats;
+            } catch (error) {
+                console.error('Failed to calculate spelling stats from Supabase:', error);
+                return null;
+            }
+        }
+
+        async function clearSpellingAttemptsFromSupabase() {
+            if (!supabase || !isAuthenticated()) {
+                console.log('Supabase not available or user not authenticated');
+                return false;
+            }
+            
+            try {
+                console.log('Clearing spelling attempts from Supabase...');
+                
+                const { error } = await supabase
+                    .from('spelling_attempts')
+                    .delete()
+                    .eq('user_id', authState.user.id);
+                
+                if (error) {
+                    console.error('Error clearing attempts from Supabase:', error);
+                    throw error;
+                }
+                
+                console.log('All spelling attempts cleared from Supabase');
+                return true;
+            } catch (error) {
+                console.error('Failed to clear spelling attempts from Supabase:', error);
+                return false;
+            }
+        }
+
+        // Database operation utilities
+        function handleSupabaseError(error, operation) {
+            console.error(`Supabase ${operation} error:`, error);
+            
+            // Map common Supabase errors to user-friendly messages
+            let userMessage = `Failed to ${operation}. Please try again.`;
+            
+            if (error.message?.includes('JWT expired')) {
+                userMessage = 'Your session has expired. Please sign in again.';
+                handleSessionExpiration();
+            } else if (error.message?.includes('Network request failed')) {
+                userMessage = 'Network error. Please check your connection and try again.';
+            } else if (error.message?.includes('permission denied')) {
+                userMessage = 'Permission denied. Please sign in again.';
+            } else if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+                userMessage = 'Database table not found. Please contact support.';
+            }
+            
+            return userMessage;
+        }
+
+        function logDatabaseOperation(operation, success, data = null) {
+            const timestamp = new Date().toISOString();
+            const logEntry = {
+                timestamp,
+                operation,
+                success,
+                user: authState.user?.email || 'anonymous',
+                data: data ? (Array.isArray(data) ? `${data.length} records` : 'record') : null
+            };
+            
+            console.log('Database operation:', logEntry);
+        }
+
         /**
          * Spelling Evaluator namespace containing all evaluation functions
          */
