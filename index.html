@@ -1063,6 +1063,40 @@
             background-color: #4a8fc4;
         }
 
+        /* Loading state styling */
+        .lesson-selector.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .lesson-selector.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid var(--blue);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .auth-modal-overlay.auth-loading {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         /* Responsive header controls */
         @media (max-width: 768px) {
             .header-controls {
@@ -1560,7 +1594,6 @@
         
         function handleSkipAuth() {
             console.log('User chose to skip authentication');
-            hideAuthModal();
             
             // Mark that user has seen the auth modal and chosen to skip
             markAuthModalSeen();
@@ -1568,10 +1601,10 @@
             // Update UI for unauthenticated state
             updateUIForAuthState(false);
             
-            // Show welcome screen and continue with unauthenticated experience
-            handleAuthModalComplete();
+            // Complete authentication flow
+            completeAuthenticationFlow(false);
             
-            // The game will work normally but won't save data
+            console.log('User skipped authentication - continuing without data storage');
         }
         
         // OTP verification functions
@@ -1873,13 +1906,10 @@
             console.log('Authentication successful, user logged in:', session.user.email);
             updateUIForAuthState(true);
             
-            // Hide unauthenticated indicator
-            hideUnauthenticatedIndicator();
+            // Complete authentication flow
+            completeAuthenticationFlow(true);
             
-            // Show welcome screen if it's hidden
-            handleAuthModalComplete();
-            
-            // Could add user feedback here (toast notification, etc.)
+            console.log('User authentication completed successfully');
         }
         
         function handleSignOut() {
@@ -2379,7 +2409,7 @@
             document.getElementById('startLessonButton').disabled = true;
         }
 
-        // Initialize lessons on page load
+        // Initialize lessons with enhanced integration
         function initializeLessons() {
             try {
                 console.log('Starting lesson initialization...');
@@ -2387,34 +2417,59 @@
                     populateLessonDropdown();
                     console.log('Lessons initialized successfully');
                     
-                    // If welcome screen is waiting for lessons, show it now
-                    const welcomeScreen = document.getElementById('welcomeScreen');
-                    if (welcomeScreen.style.display === 'none' && !document.getElementById('authModal').style.display.includes('flex')) {
-                        // Auth modal is not showing, so we can show welcome screen
-                        showWelcomeScreen();
-                    }
+                    // Update welcome screen loading state
+                    hideWelcomeLoadingState();
+                    
+                    // Notify authentication system that lessons are ready
+                    handleLessonsLoaded();
+                    
                 }).catch(error => {
                     console.error('Failed to initialize lessons:', error);
+                    
                     // Show fallback option if lessons fail to load
                     showLessonLoadFallback();
-                    showErrorModal(error);
+                    hideWelcomeLoadingState();
                     
-                    // Still show welcome screen even with lesson load failure
-                    const welcomeScreen = document.getElementById('welcomeScreen');
-                    if (welcomeScreen.style.display === 'none' && !document.getElementById('authModal').style.display.includes('flex')) {
-                        showWelcomeScreen();
-                    }
+                    // Show error but don't block the application
+                    showErrorToast(
+                        'Failed to load lessons from server. Using fallback word list.',
+                        'warning',
+                        5000
+                    );
+                    
+                    // Notify authentication system that lessons are ready (with fallback)
+                    handleLessonsLoaded();
                 });
             } catch (error) {
                 console.error('Failed to initialize lessons:', error);
                 showLessonLoadFallback();
-                showErrorModal(error);
+                hideWelcomeLoadingState();
                 
-                // Still show welcome screen even with lesson load failure
-                const welcomeScreen = document.getElementById('welcomeScreen');
-                if (welcomeScreen.style.display === 'none' && !document.getElementById('authModal').style.display.includes('flex')) {
-                    showWelcomeScreen();
-                }
+                showErrorToast(
+                    'Lesson system error. Using fallback word list.',
+                    'error',
+                    5000
+                );
+                
+                handleLessonsLoaded();
+            }
+        }
+        
+        function handleLessonsLoaded() {
+            // Notify that lessons are ready for the authentication flow
+            console.log('Lessons loaded - updating UI state');
+            
+            // If welcome screen is visible but in loading state, update it
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            if (welcomeScreen.style.display === 'flex') {
+                hideWelcomeLoadingState();
+            }
+            
+            // Trigger any pending welcome screen displays
+            const authModal = document.getElementById('authModal');
+            if (authModal.style.display !== 'flex' && welcomeScreen.style.display === 'none') {
+                // No auth modal showing and welcome screen hidden - show it now
+                showWelcomeScreenAfterAuth();
             }
         }
 
@@ -4163,64 +4218,104 @@
             }
         });
         
-        // Initialize authentication system
+        // Initialize authentication system with enhanced flow control
         async function initializeAuthentication() {
             try {
                 console.log('Initializing authentication system...');
                 
-                // Check for existing session first
-                await checkExistingSession();
-                
-                // Set up auth state listener
+                // Set up auth state listener first
                 setupAuthStateListener();
                 
-                // Determine if we should show auth modal
-                const shouldShowAuth = shouldShowAuthModal();
+                // Check for existing session
+                await checkExistingSession();
                 
-                if (shouldShowAuth) {
-                    console.log('Showing authentication modal for new user');
-                    // Hide welcome screen until auth decision is made
-                    document.getElementById('welcomeScreen').style.display = 'none';
-                    showAuthModal();
+                // Determine authentication flow based on user state
+                const shouldShowAuth = shouldShowAuthModal();
+                const shouldDelay = shouldDelayGameStart();
+                
+                if (shouldShowAuth && shouldDelay) {
+                    // New user - show authentication prompt
+                    showAuthenticationPrompt();
+                    
+                    // Set timeout to prevent indefinite waiting
+                    setTimeout(() => {
+                        const authModal = document.getElementById('authModal');
+                        if (authModal.style.display === 'flex') {
+                            handleAuthenticationTimeout();
+                        }
+                    }, 30000); // 30 second timeout
+                    
+                } else if (isAuthenticated()) {
+                    // Existing authenticated user
+                    console.log('User already authenticated - showing welcome screen');
+                    updateUIForAuthState(true);
+                    showWelcomeScreenAfterAuth();
+                    
                 } else {
-                    console.log('Skipping authentication modal - user already authenticated or has seen it');
-                    // Show welcome screen immediately
-                    showWelcomeScreen();
+                    // User has seen auth modal before or authentication not needed
+                    console.log('Skipping authentication modal - showing welcome screen');
+                    updateUIForAuthState(false);
+                    showWelcomeScreenAfterAuth();
+                    
+                    // Show indicator for unauthenticated users who have made a decision
+                    if (localStorage.getItem('spelldle_auth_modal_seen') === 'true') {
+                        showUnauthenticatedIndicator();
+                    }
                 }
                 
-                console.log('Authentication system initialized');
+                console.log('Authentication system initialized successfully');
             } catch (error) {
                 console.error('Failed to initialize authentication system:', error);
-                // Continue without authentication and show welcome screen
+                
+                // Fallback: continue without authentication
                 updateUIForAuthState(false);
-                showWelcomeScreen();
+                showWelcomeScreenAfterAuth();
+                
+                showErrorToast(
+                    'Authentication system unavailable. Playing without data storage.',
+                    'warning',
+                    5000
+                );
             }
         }
         
-        // Show welcome screen with proper initialization
+        // Enhanced welcome screen display with loading state management
         function showWelcomeScreen() {
             const welcomeScreen = document.getElementById('welcomeScreen');
-            welcomeScreen.style.display = 'flex';
             
-            // Ensure lesson dropdown is properly initialized
+            // Add loading state if lessons aren't ready
             const dropdown = document.getElementById('lessonDropdown');
             if (dropdown.innerHTML === '<option value="">Loading lessons...</option>') {
-                // Lessons are still loading, wait for them
-                console.log('Waiting for lessons to load before showing welcome screen');
+                // Show welcome screen with loading state
+                welcomeScreen.style.display = 'flex';
+                showWelcomeLoadingState();
+                console.log('Welcome screen displayed with loading state');
             } else {
+                // Show welcome screen normally
+                welcomeScreen.style.display = 'flex';
+                hideWelcomeLoadingState();
                 console.log('Welcome screen displayed');
             }
         }
         
-        // Handle authentication modal completion (login or skip)
-        function handleAuthModalComplete() {
-            // Show welcome screen after auth decision
-            showWelcomeScreen();
+        function showWelcomeLoadingState() {
+            // Add visual loading indicator to lesson selector
+            const lessonSelector = document.getElementById('lessonSelector');
+            lessonSelector.classList.add('loading');
             
-            // Add authentication status indicator if not authenticated
-            if (!isAuthenticated()) {
-                showUnauthenticatedIndicator();
-            }
+            const startButton = document.getElementById('startLessonButton');
+            startButton.textContent = 'Loading lessons...';
+            startButton.disabled = true;
+        }
+        
+        function hideWelcomeLoadingState() {
+            // Remove loading indicator
+            const lessonSelector = document.getElementById('lessonSelector');
+            lessonSelector.classList.remove('loading');
+            
+            const startButton = document.getElementById('startLessonButton');
+            startButton.textContent = 'Start Lesson';
+            // Button state will be managed by lesson dropdown change handler
         }
         
         // Show indicator for unauthenticated users
@@ -4315,7 +4410,7 @@
             console.log('Authentication modal event listeners set up');
         }
         
-        // Add keyboard support for authentication modal
+        // Enhanced keyboard support for authentication modal
         document.addEventListener('keydown', function(event) {
             const authModal = document.getElementById('authModal');
             if (authModal.style.display === 'flex' && event.key === 'Escape') {
@@ -4333,6 +4428,133 @@
                 // event.returnValue = '';
             }
         });
+        
+        // Authentication flow integration functions
+        function showAuthenticationPrompt() {
+            // Show authentication modal with proper timing
+            console.log('Showing authentication prompt for new user');
+            
+            // Ensure welcome screen is hidden during auth decision
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            welcomeScreen.style.display = 'none';
+            
+            // Show authentication modal
+            showAuthModal();
+            
+            // Add loading indicator for better UX
+            showAuthLoadingState();
+        }
+        
+        function showAuthLoadingState() {
+            // Add subtle loading state while auth modal is shown
+            const authModal = document.getElementById('authModal');
+            authModal.classList.add('auth-loading');
+            
+            // Remove loading state after modal is fully displayed
+            setTimeout(() => {
+                authModal.classList.remove('auth-loading');
+            }, 300);
+        }
+        
+        function completeAuthenticationFlow(isAuthenticated) {
+            console.log('Completing authentication flow:', isAuthenticated ? 'authenticated' : 'skipped');
+            
+            // Hide authentication modal
+            hideAuthModal();
+            
+            // Update UI based on authentication status
+            updateUIForAuthState(isAuthenticated);
+            
+            // Show welcome screen after auth decision
+            showWelcomeScreenAfterAuth();
+            
+            // Show appropriate status indicators
+            if (!isAuthenticated) {
+                showUnauthenticatedIndicator();
+                showAuthSkippedFeedback();
+            } else {
+                hideUnauthenticatedIndicator();
+                showAuthSuccessFeedback();
+            }
+        }
+        
+        function showWelcomeScreenAfterAuth() {
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            
+            // Ensure lessons are loaded before showing welcome screen
+            if (availableLessons.length > 0) {
+                welcomeScreen.style.display = 'flex';
+                console.log('Welcome screen displayed after authentication decision');
+            } else {
+                // Lessons still loading, wait for them
+                console.log('Waiting for lessons to load before showing welcome screen');
+                const checkLessons = setInterval(() => {
+                    if (availableLessons.length > 0) {
+                        clearInterval(checkLessons);
+                        welcomeScreen.style.display = 'flex';
+                        console.log('Welcome screen displayed after lessons loaded');
+                    }
+                }, 100);
+                
+                // Timeout after 5 seconds to prevent infinite waiting
+                setTimeout(() => {
+                    clearInterval(checkLessons);
+                    welcomeScreen.style.display = 'flex';
+                    console.log('Welcome screen displayed after timeout');
+                }, 5000);
+            }
+        }
+        
+        function showAuthSkippedFeedback() {
+            // Show subtle feedback that user chose to skip authentication
+            showErrorToast(
+                'Playing without saving progress. You can sign in anytime from the header.',
+                'info',
+                4000
+            );
+        }
+        
+        function showAuthSuccessFeedback() {
+            // Show success feedback for completed authentication
+            const userEmail = authState.user?.email || 'user';
+            showErrorToast(
+                `Welcome back! Your progress will be saved automatically.`,
+                'success',
+                3000
+            );
+        }
+        
+        function handleAuthenticationTimeout() {
+            // Handle case where authentication takes too long
+            console.warn('Authentication flow timeout - proceeding without auth');
+            
+            // Mark as seen to prevent showing again
+            markAuthModalSeen();
+            
+            // Show welcome screen
+            showWelcomeScreenAfterAuth();
+            
+            // Show timeout message
+            showErrorToast(
+                'Authentication timed out. You can sign in from the header.',
+                'warning',
+                5000
+            );
+        }
+        
+        function isAuthenticationRequired() {
+            // Determine if authentication should be required or optional
+            // For now, authentication is always optional
+            return false;
+        }
+        
+        function shouldDelayGameStart() {
+            // Determine if game start should be delayed for authentication
+            const isNewUser = !localStorage.getItem('spelldle_auth_modal_seen');
+            const isNotAuthenticated = !isAuthenticated();
+            
+            return isNewUser && isNotAuthenticated;
+        }
     </script>
 </body>
 </html>
