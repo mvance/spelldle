@@ -1137,6 +1137,7 @@
         async function checkExistingSession() {
             if (!supabase) {
                 console.log('Supabase client not available, skipping session check');
+                updateUIForAuthState(false);
                 return;
             }
             
@@ -1146,6 +1147,7 @@
                 
                 if (error) {
                     console.error('Error checking existing session:', error);
+                    updateUIForAuthState(false);
                     return;
                 }
                 
@@ -1153,11 +1155,15 @@
                 
                 if (session) {
                     console.log('Existing session found for user:', session.user.email);
+                    updateUIForAuthState(true);
+                    markAuthModalSeen(); // User is already authenticated
                 } else {
                     console.log('No existing session found');
+                    updateUIForAuthState(false);
                 }
             } catch (error) {
                 console.error('Failed to check existing session:', error);
+                updateUIForAuthState(false);
             }
         }
         
@@ -1354,6 +1360,13 @@
         function handleSkipAuth() {
             console.log('User chose to skip authentication');
             hideAuthModal();
+            
+            // Mark that user has seen the auth modal and chosen to skip
+            markAuthModalSeen();
+            
+            // Update UI for unauthenticated state
+            updateUIForAuthState(false);
+            
             // Continue with unauthenticated experience
             // The game will work normally but won't save data
         }
@@ -1643,8 +1656,12 @@
             // Close authentication modal if open
             hideAuthModal();
             
+            // Mark that user has completed authentication
+            markAuthModalSeen();
+            
             // Update UI to reflect authenticated state
             console.log('Authentication successful, user logged in:', session.user.email);
+            updateUIForAuthState(true);
             
             // Could add user feedback here (toast notification, etc.)
         }
@@ -1653,8 +1670,120 @@
             // Update UI to reflect unauthenticated state
             console.log('User signed out, updating UI state');
             
+            // Clear any cached user data
+            clearUserData();
+            
+            // Update UI for unauthenticated state
+            updateUIForAuthState(false);
+            
             // Could add user feedback here (toast notification, etc.)
             // Could redirect to welcome screen if desired
+        }
+        
+        // Session management functions
+        async function handleSignOutAction() {
+            try {
+                console.log('Initiating sign out...');
+                
+                // Show confirmation dialog
+                const confirmed = confirm('Are you sure you want to sign out? Your progress will no longer be saved.');
+                if (!confirmed) {
+                    return;
+                }
+                
+                // Call Supabase sign out
+                await signOut();
+                
+                console.log('Sign out completed successfully');
+                
+                // The auth state listener will handle UI updates automatically
+                
+            } catch (error) {
+                console.error('Failed to sign out:', error);
+                // Show error message but don't block the user
+                alert('Sign out failed. Please try again.');
+            }
+        }
+        
+        function clearUserData() {
+            // Clear any cached user-specific data
+            console.log('Clearing user data cache');
+            
+            // Could clear any user-specific localStorage items here if needed
+            // For now, we don't store user-specific data in localStorage
+        }
+        
+        function updateUIForAuthState(isAuthenticated) {
+            console.log('Updating UI for auth state:', isAuthenticated ? 'authenticated' : 'unauthenticated');
+            
+            // Update header controls
+            updateHeaderControls(isAuthenticated);
+            
+            // Update any authentication status indicators
+            updateAuthStatusIndicators(isAuthenticated);
+            
+            // Update welcome screen messaging if needed
+            updateWelcomeScreenForAuth(isAuthenticated);
+        }
+        
+        function updateHeaderControls(isAuthenticated) {
+            // For now, just log the state - header controls will be added in Step 14
+            console.log('Header controls update:', isAuthenticated ? 'show logout' : 'hide logout');
+        }
+        
+        function updateAuthStatusIndicators(isAuthenticated) {
+            // Add subtle indicator when playing without authentication
+            let indicator = document.getElementById('authStatusIndicator');
+            
+            if (!isAuthenticated) {
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.id = 'authStatusIndicator';
+                    indicator.style.cssText = `
+                        position: fixed;
+                        top: 10px;
+                        right: 10px;
+                        background-color: rgba(255, 193, 7, 0.9);
+                        color: #000;
+                        padding: 5px 10px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        z-index: 1500;
+                        pointer-events: none;
+                    `;
+                    indicator.textContent = 'Playing without saving progress';
+                    document.body.appendChild(indicator);
+                }
+            } else {
+                if (indicator) {
+                    indicator.remove();
+                }
+            }
+        }
+        
+        function updateWelcomeScreenForAuth(isAuthenticated) {
+            // Could update welcome screen messaging based on auth status
+            // For now, just log the state
+            console.log('Welcome screen auth state:', isAuthenticated ? 'authenticated' : 'unauthenticated');
+        }
+        
+        function shouldShowAuthModal() {
+            // Determine if we should show the authentication modal on page load
+            const isAuth = isAuthenticated();
+            const hasSeenAuthModal = localStorage.getItem('spelldle_auth_modal_seen') === 'true';
+            
+            // Show modal if user is not authenticated and hasn't explicitly skipped before
+            return !isAuth && !hasSeenAuthModal;
+        }
+        
+        function markAuthModalSeen() {
+            // Mark that user has seen the auth modal (either logged in or skipped)
+            localStorage.setItem('spelldle_auth_modal_seen', 'true');
+        }
+        
+        function clearAuthModalSeen() {
+            // Clear the auth modal seen flag (useful for testing or reset)
+            localStorage.removeItem('spelldle_auth_modal_seen');
         }
         
         // CSV URL for dynamic loading (always pulls latest version)
@@ -2419,6 +2548,74 @@
             // Clear any validation messages when user starts typing
             clearValidationMessage();
         }
+        
+        // Handle session expiration gracefully
+        function handleSessionExpiration() {
+            console.log('Session expired, updating auth state');
+            
+            // Clear auth state
+            updateAuthState(null);
+            
+            // Update UI
+            updateUIForAuthState(false);
+            
+            // Clear the auth modal seen flag so user can authenticate again
+            clearAuthModalSeen();
+            
+            // Optionally show a message to the user
+            console.log('Your session has expired. Sign in again to continue saving progress.');
+        }
+        
+        // Enhanced auth state listener to handle session expiration
+        function setupSupabaseAuthListener() {
+            if (!supabase) {
+                console.log('Supabase client not available, skipping auth listener setup');
+                return;
+            }
+            
+            try {
+                console.log('Setting up Supabase authentication listener...');
+                const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('Supabase auth state change:', event, session?.user?.email || 'no user');
+                    
+                    // Update our auth state
+                    updateAuthState(session);
+                    
+                    // Handle specific auth events
+                    switch (event) {
+                        case 'SIGNED_IN':
+                            console.log('User signed in:', session.user.email);
+                            handleSuccessfulSignIn(session);
+                            break;
+                        case 'SIGNED_OUT':
+                            console.log('User signed out');
+                            handleSignOut();
+                            break;
+                        case 'TOKEN_REFRESHED':
+                            console.log('Token refreshed for user:', session.user.email);
+                            // Ensure UI stays in authenticated state
+                            updateUIForAuthState(true);
+                            break;
+                        case 'USER_UPDATED':
+                            console.log('User updated:', session.user.email);
+                            break;
+                        case 'PASSWORD_RECOVERY':
+                            console.log('Password recovery initiated');
+                            break;
+                        default:
+                            console.log('Auth event:', event);
+                            // Handle session expiration or other auth failures
+                            if (!session && authState.isAuthenticated) {
+                                handleSessionExpiration();
+                            }
+                    }
+                });
+                
+                return subscription;
+            } catch (error) {
+                console.error('Failed to setup Supabase auth listener:', error);
+            }
+        }
 
         // Show validation message
         function showValidationMessage(message) {
@@ -3171,20 +3368,19 @@
         }
 
         // Initialize the page when it loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             try {
                 console.log('Spelldle initialized');
                 console.log('Current game state:', gameState);
                 checkTTSSupport();
                 
-                // Initialize authentication
-                checkExistingSession();
-                setupAuthStateListener();
-                
-                // Set up authentication modal event listeners
+                // Set up authentication modal event listeners first
                 setupAuthModalEventListeners();
                 
-                // Initialize lessons
+                // Initialize authentication and wait for it to complete
+                await initializeAuthentication();
+                
+                // Initialize lessons after authentication is set up
                 initializeLessons();
                 
                 // Validate fallback word list
@@ -3215,6 +3411,35 @@
                 console.error('Error during page initialization:', error);
             }
         });
+        
+        // Initialize authentication system
+        async function initializeAuthentication() {
+            try {
+                console.log('Initializing authentication system...');
+                
+                // Check for existing session first
+                await checkExistingSession();
+                
+                // Set up auth state listener
+                setupAuthStateListener();
+                
+                // Show authentication modal if needed
+                setTimeout(() => {
+                    if (shouldShowAuthModal()) {
+                        console.log('Showing authentication modal for new user');
+                        showAuthModal();
+                    } else {
+                        console.log('Skipping authentication modal - user already authenticated or has seen it');
+                    }
+                }, 500); // Brief delay to let UI settle
+                
+                console.log('Authentication system initialized');
+            } catch (error) {
+                console.error('Failed to initialize authentication system:', error);
+                // Continue without authentication
+                updateUIForAuthState(false);
+            }
+        }
         
         // Set up authentication modal event listeners
         function setupAuthModalEventListeners() {
