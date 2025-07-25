@@ -1020,8 +1020,8 @@
         }
 
         .logout-link {
-            color: var(--blue);
-            text-decoration: none;
+            color: var(--blue) !important;
+            text-decoration: none !important;
             font-size: 14px;
             font-weight: bold;
             padding: 6px 12px;
@@ -1032,18 +1032,24 @@
         }
 
         .logout-link:hover {
-            background-color: rgba(90, 159, 212, 0.2);
+            background-color: rgba(90, 159, 212, 0.2) !important;
             border-color: var(--blue);
-            text-decoration: none;
+            text-decoration: none !important;
+            color: var(--blue) !important;
         }
 
         .logout-link:active {
-            background-color: rgba(90, 159, 212, 0.3);
+            background-color: rgba(90, 159, 212, 0.3) !important;
+            color: var(--blue) !important;
+        }
+
+        .logout-link:visited {
+            color: var(--blue) !important;
         }
 
         .sign-in-link {
-            color: var(--blue);
-            text-decoration: none;
+            color: var(--blue) !important;
+            text-decoration: none !important;
             font-size: 14px;
             font-weight: bold;
             padding: 6px 12px;
@@ -1054,13 +1060,18 @@
         }
 
         .sign-in-link:hover {
-            background-color: var(--blue);
-            color: white;
-            text-decoration: none;
+            background-color: var(--blue) !important;
+            color: white !important;
+            text-decoration: none !important;
         }
 
         .sign-in-link:active {
-            background-color: #4a8fc4;
+            background-color: #4a8fc4 !important;
+            color: white !important;
+        }
+
+        .sign-in-link:visited {
+            color: var(--blue) !important;
         }
 
         /* Loading state styling */
