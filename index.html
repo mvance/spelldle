@@ -2160,8 +2160,35 @@
             }
         }
 
-        // LocalStorage functions for spelling attempts
-        function saveSpellingAttempt(guess, isCorrect) {
+        // Authentication-aware storage function
+        async function saveSpellingAttempt(guess, isCorrect) {
+            if (isAuthenticated()) {
+                // User is authenticated - save to Supabase
+                console.log('User authenticated - saving to Supabase');
+                try {
+                    const success = await saveSpellingAttemptToSupabase(guess, isCorrect);
+                    if (success) {
+                        console.log('Spelling attempt saved to Supabase successfully');
+                    } else {
+                        console.warn('Failed to save spelling attempt to Supabase');
+                    }
+                } catch (error) {
+                    console.error('Error saving to Supabase:', error);
+                }
+            } else {
+                // User is not authenticated - skip storage
+                console.log('User not authenticated - skipping data storage');
+                console.log('Spelling attempt not saved:', {
+                    lesson_name: gameState.currentLesson || 'Fallback Word List',
+                    word_target: gameState.currentWord,
+                    spelling_guess: guess,
+                    result: isCorrect ? 'correct' : 'incorrect'
+                });
+            }
+        }
+
+        // Legacy localStorage function (kept for reference/migration)
+        function saveSpellingAttemptToLocalStorage(guess, isCorrect) {
             try {
                 const attempt = {
                     user_email: null, // No user-specific tracking for now
@@ -2181,9 +2208,9 @@
                 // Save back to localStorage
                 localStorage.setItem('spelldle_attempts', JSON.stringify(existingAttempts));
                 
-                console.log('Saved spelling attempt:', attempt);
+                console.log('Saved spelling attempt to localStorage:', attempt);
             } catch (error) {
-                console.error('Failed to save spelling attempt:', error);
+                console.error('Failed to save spelling attempt to localStorage:', error);
             }
         }
 
@@ -2214,6 +2241,7 @@
             
             try {
                 console.log('Saving spelling attempt to Supabase...');
+                logDatabaseOperation('save_attempt', null, { guess, isCorrect });
                 
                 const { data, error } = await supabase
                     .from('spelling_attempts')
@@ -2227,13 +2255,21 @@
                 
                 if (error) {
                     console.error('Error saving to Supabase:', error);
+                    logDatabaseOperation('save_attempt', false, error);
+                    
+                    // Handle specific error types
+                    const userMessage = handleSupabaseError(error, 'save spelling attempt');
+                    console.warn('Storage error (non-blocking):', userMessage);
+                    
                     throw error;
                 }
                 
                 console.log('Spelling attempt saved to Supabase:', data);
+                logDatabaseOperation('save_attempt', true, data);
                 return true;
             } catch (error) {
                 console.error('Failed to save spelling attempt to Supabase:', error);
+                logDatabaseOperation('save_attempt', false, error);
                 return false;
             }
         }
