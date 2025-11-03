@@ -1173,6 +1173,33 @@
             text-decoration: none !important;
         }
 
+        /* Nuclear override for the "Sign In" link - highest specificity */
+        #headerControls #signInLink,
+        #headerControls a.sign-in-link,
+        #headerControls a[href="#"]:not(#logoutLink),
+        a#signInLink,
+        a#signInLink:link,
+        a#signInLink:visited,
+        a#signInLink:hover,
+        a#signInLink:active,
+        a#signInLink:any-link {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+            border: 2px solid #ffffff !important;
+            text-decoration: none !important;
+            font-weight: bold !important;
+            border-radius: 6px !important;
+            padding: 8px 16px !important;
+            display: inline-block !important;
+            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* Override any inline styles that might be applied */
+        #signInLink[style] {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+        }
+
         /* Loading state styling */
         .lesson-selector.loading {
             opacity: 0.7;
