@@ -25,11 +25,15 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js" 
             integrity="sha384-0esPaJH+F9evp2lsJYN36SW7XkRbaYviuyF+PpnbjDXBC9i1CWGiJyGrXCyiyGqZ" 
             crossorigin="anonymous"></script>
-    
-    <!-- Pico CSS Framework -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <style>
-        /* Game-specific color variables (preserve existing colors) */
+        /* CSS Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Color scheme variables */
         :root {
             --green: #6aaa64;
             --yellow: #c9b458;
@@ -40,18 +44,12 @@
             --dark-border: #3a3a3c;
         }
 
-        /* Override Pico's default theme with our dark theme */
-        [data-theme="dark"],
-        :root:not([data-theme="light"]) {
-            --pico-background-color: var(--dark-bg);
-            --pico-color: var(--dark-text);
-            --pico-primary: var(--blue);
-        }
-
-        /* Body layout for game */
+        /* Dark theme styling */
         body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--dark-bg);
             color: var(--dark-text);
+            line-height: 1.6;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -79,6 +77,27 @@
             gap: 20px;
         }
 
+        /* Start button styling */
+        .start-button {
+            background-color: var(--blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .start-button:hover {
+            background-color: #4a8fc4;
+        }
+
+        .start-button:active {
+            background-color: #3a7fb4;
+        }
+
         /* Audio controls styling */
         .audio-controls {
             display: flex;
@@ -89,10 +108,21 @@
         .repeat-button {
             background-color: var(--gray);
             color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
 
         .repeat-button:hover {
             background-color: #686c6f;
+        }
+
+        .repeat-button:active {
+            background-color: #585c5f;
         }
 
         .repeat-button:disabled {
@@ -127,8 +157,46 @@
         }
 
         .guess-input {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            border: 2px solid var(--dark-border);
+            padding: 12px 16px;
+            font-size: 16px;
+            border-radius: 6px;
             min-width: 200px;
             text-align: center;
+            font-family: inherit;
+        }
+
+        .guess-input:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        .submit-button {
+            background-color: var(--blue);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .submit-button:hover {
+            background-color: #4a8fc4;
+        }
+
+        .submit-button:active {
+            background-color: #3a7fb4;
+        }
+
+        .submit-button:disabled {
+            background-color: #4a4a4a;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         .validation-message {
@@ -152,6 +220,26 @@
             font-size: 24px;
             font-weight: bold;
             color: var(--blue);
+        }
+
+        .play-again-button {
+            background-color: var(--blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .play-again-button:hover {
+            background-color: #4a8fc4;
+        }
+
+        .play-again-button:active {
+            background-color: #3a7fb4;
         }
 
         /* Clue phase feedback styling */
@@ -250,7 +338,22 @@
         .clue-submit-button {
             background-color: var(--blue);
             color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
             margin-top: 10px;
+        }
+
+        .clue-submit-button:hover {
+            background-color: #4a8fc4;
+        }
+
+        .clue-submit-button:active {
+            background-color: #3a7fb4;
         }
 
         .clue-submit-button:disabled {
@@ -270,11 +373,22 @@
         .reinforcement-submit-button {
             background-color: var(--green);
             color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
             margin-top: 10px;
         }
 
         .reinforcement-submit-button:hover {
             background-color: #5a9a54;
+        }
+
+        .reinforcement-submit-button:active {
+            background-color: #4a8a44;
         }
 
         .reinforcement-submit-button:disabled {
@@ -443,10 +557,22 @@
         }
 
         .lesson-dropdown {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            border: 2px solid var(--dark-border);
+            padding: 12px 16px;
+            font-size: 16px;
+            border-radius: 6px;
             min-width: 250px;
+            font-family: inherit;
         }
 
-        /* Custom modal styling (override Pico's modal) */
+        .lesson-dropdown:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        /* Modal styling */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -488,6 +614,26 @@
             align-items: center;
             gap: 15px;
             margin-top: 20px;
+        }
+
+        .modal-button {
+            background-color: var(--blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .modal-button:hover {
+            background-color: #4a8fc4;
+        }
+
+        .modal-button:active {
+            background-color: #3a7fb4;
         }
 
         .error-details {
@@ -565,6 +711,32 @@
             gap: 8px;
         }
 
+        .auth-input-group label {
+            color: var(--dark-text);
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .auth-input {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+            border: 2px solid var(--dark-border);
+            padding: 12px 16px;
+            font-size: 16px;
+            border-radius: 6px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        .auth-input::placeholder {
+            color: #666;
+        }
+
         .auth-error {
             background-color: #d73a49;
             color: white;
@@ -581,15 +753,61 @@
             gap: 12px;
         }
 
+        .auth-button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            border: 2px solid transparent;
+        }
+
+        .auth-button.primary {
+            background-color: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+
+        .auth-button.primary:hover {
+            background-color: #4a8fc4;
+            border-color: #4a8fc4;
+        }
+
+        .auth-button.primary:active {
+            background-color: #3a7fb4;
+            border-color: #3a7fb4;
+        }
+
+        .auth-button.primary:disabled {
+            background-color: #4a4a4a;
+            border-color: #4a4a4a;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
         .auth-button.secondary {
             background-color: transparent;
             color: var(--dark-text);
-            border: 2px solid var(--dark-border);
+            border-color: var(--dark-border);
         }
 
         .auth-button.secondary:hover {
             background-color: var(--dark-border);
             border-color: #555;
+        }
+
+        .auth-button.secondary:active {
+            background-color: #444;
+            border-color: #666;
+        }
+
+        .auth-button.secondary:disabled {
+            color: #666;
+            border-color: #333;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         #emailDisplay {
@@ -1125,7 +1343,7 @@
 
     <div class="progress-counter" id="progressCounter" style="display: none;">Word 1 of 12</div>
     
-    <div class="container game-container" id="gameContainer">
+    <div class="game-container" id="gameContainer">
         <!-- Welcome Screen -->
         <div class="welcome-screen" id="welcomeScreen" style="display: flex;">
             <h1>Spelldle</h1>
@@ -1168,7 +1386,7 @@
             </div>
         </div>
         
-        <button id="startButton" onclick="initializeGame()" style="display: none;">Start Game</button>
+        <button class="start-button" id="startButton" onclick="initializeGame()" style="display: none;">Start Game</button>
         <div class="audio-controls" id="audioControls" style="display: none;">
             <button class="repeat-button" id="repeatButton" onclick="repeatWord()" disabled>Repeat Word</button>
         </div>
@@ -1188,7 +1406,7 @@
                     onkeydown="handleInputKeydown(event)"
                     oninput="handleInputChange(event)"
                 />
-                <button id="submitButton" onclick="submitGuess()">Submit</button>
+                <button class="submit-button" id="submitButton" onclick="submitGuess()">Submit</button>
             </div>
             <div class="validation-message" id="validationMessage"></div>
         </div>
@@ -1199,7 +1417,7 @@
         
         <div class="game-complete-container" id="gameCompleteContainer" style="display: none;">
             <div class="game-complete-message">Game Complete!</div>
-            <button onclick="playAgain()">Play Again</button>
+            <button class="play-again-button" onclick="playAgain()">Play Again</button>
         </div>
         
         <!-- Lesson Complete Modal -->
@@ -1212,7 +1430,7 @@
                         <option value="next">Next Lesson</option>
                         <option value="menu">Return to Menu</option>
                     </select>
-                    <button onclick="handleLessonComplete()">Continue</button>
+                    <button class="modal-button" onclick="handleLessonComplete()">Continue</button>
                 </div>
             </div>
         </div>
@@ -1222,7 +1440,7 @@
             <div class="modal-content">
                 <h2>Lesson Load Error</h2>
                 <div class="error-details" id="errorDetails"></div>
-                <button onclick="retryLessonLoad()">Retry</button>
+                <button class="modal-button" onclick="retryLessonLoad()">Retry</button>
             </div>
         </div>
         
@@ -1253,7 +1471,7 @@
                         <div class="auth-error" id="emailError" style="display: none;"></div>
                         
                         <div class="auth-buttons">
-                            <button id="sendOtpButton">
+                            <button class="auth-button primary" id="sendOtpButton">
                                 Send Verification Code
                             </button>
                             <button class="auth-button secondary" id="skipAuthButton">
@@ -1289,7 +1507,7 @@
                         <div class="auth-error" id="otpError" style="display: none;"></div>
                         
                         <div class="auth-buttons">
-                            <button id="verifyOtpButton">
+                            <button class="auth-button primary" id="verifyOtpButton">
                                 Verify Code
                             </button>
                             <button class="auth-button secondary" id="resendOtpButton">
