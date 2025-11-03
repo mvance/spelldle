@@ -77,8 +77,11 @@
             gap: 20px;
         }
 
-        /* Start button styling */
-        .start-button {
+        /* Base button styling */
+        .start-button,
+        .submit-button,
+        .play-again-button,
+        .modal-button {
             background-color: var(--blue);
             color: white;
             border: none;
@@ -90,12 +93,27 @@
             transition: background-color 0.2s;
         }
 
-        .start-button:hover {
+        .start-button:hover,
+        .submit-button:hover,
+        .play-again-button:hover,
+        .modal-button:hover {
             background-color: #4a8fc4;
         }
 
-        .start-button:active {
+        .start-button:active,
+        .submit-button:active,
+        .play-again-button:active,
+        .modal-button:active {
             background-color: #3a7fb4;
+        }
+
+        .start-button:disabled,
+        .submit-button:disabled,
+        .play-again-button:disabled,
+        .modal-button:disabled {
+            background-color: #4a4a4a;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         /* Audio controls styling */
@@ -173,31 +191,6 @@
             border-color: var(--blue);
         }
 
-        .submit-button {
-            background-color: var(--blue);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .submit-button:hover {
-            background-color: #4a8fc4;
-        }
-
-        .submit-button:active {
-            background-color: #3a7fb4;
-        }
-
-        .submit-button:disabled {
-            background-color: #4a4a4a;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
 
         .validation-message {
             color: var(--yellow);
@@ -222,25 +215,6 @@
             color: var(--blue);
         }
 
-        .play-again-button {
-            background-color: var(--blue);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .play-again-button:hover {
-            background-color: #4a8fc4;
-        }
-
-        .play-again-button:active {
-            background-color: #3a7fb4;
-        }
 
         /* Clue phase feedback styling */
         .clue-phase-container {
@@ -616,25 +590,6 @@
             margin-top: 20px;
         }
 
-        .modal-button {
-            background-color: var(--blue);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .modal-button:hover {
-            background-color: #4a8fc4;
-        }
-
-        .modal-button:active {
-            background-color: #3a7fb4;
-        }
 
         .error-details {
             background-color: #2a2a2a;
@@ -1019,198 +974,8 @@
             background-color: rgba(0, 0, 0, 0.3);
         }
 
-        .logout-link {
-            color: #fff !important;
-            background-color: #5a9fd4 !important; /* Softer blue for accessibility */
-            border-color: #5a9fd4 !important;
-            font-weight: bold !important;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-            text-decoration: none;
-            font-size: 14px;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.2s;
-            border: 2px solid #5a9fd4;
-        }
 
-        .logout-link:hover {
-            background-color: #4a8fc4 !important;
-            border-color: #4a8fc4 !important;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35) !important;
-            text-decoration: none;
-            color: #ffffff;
-        }
-
-        .logout-link:active {
-            background-color: #3a7fb4;
-            border-color: #3a7fb4;
-            color: #ffffff;
-        }
-
-        /* Sign In Link - High Contrast Styling - Override ALL blue link styles */
-        #signInLink,
-        a[id="signInLink"],
-        .sign-in-link,
-        #headerControls a[href="#"]:not(#logoutLink),
-        #headerControls .sign-in-link,
-        .header-controls #signInLink,
-        .header-controls a[href="#"]:not(#logoutLink) {
-            color: #000000 !important;
-            text-decoration: none !important;
-            font-size: 14px !important;
-            font-weight: bold !important;
-            padding: 8px 16px !important;
-            border-radius: 6px !important;
-            transition: all 0.2s !important;
-            background-color: #ffffff !important;
-            border: 2px solid #ffffff !important;
-            display: inline-block !important;
-            box-sizing: border-box !important;
-            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.2) !important;
-        }
-
-        /* Override ALL possible link pseudo-classes */
-        #signInLink:link,
-        #signInLink:visited,
-        #signInLink:any-link,
-        a[id="signInLink"]:link,
-        a[id="signInLink"]:visited,
-        a[id="signInLink"]:any-link,
-        .sign-in-link:link,
-        .sign-in-link:visited,
-        .sign-in-link:any-link,
-        #headerControls a[href="#"]:not(#logoutLink):link,
-        #headerControls a[href="#"]:not(#logoutLink):visited,
-        #headerControls a[href="#"]:not(#logoutLink):any-link,
-        #headerControls .sign-in-link:link,
-        #headerControls .sign-in-link:visited,
-        #headerControls .sign-in-link:any-link,
-        .header-controls #signInLink:link,
-        .header-controls #signInLink:visited,
-        .header-controls #signInLink:any-link,
-        .header-controls a[href="#"]:not(#logoutLink):link,
-        .header-controls a[href="#"]:not(#logoutLink):visited,
-        .header-controls a[href="#"]:not(#logoutLink):any-link {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            border-color: #ffffff !important;
-            text-decoration: none !important;
-        }
-
-        #signInLink:hover,
-        a[id="signInLink"]:hover,
-        .sign-in-link:hover,
-        #headerControls a[href="#"]:not(#logoutLink):hover,
-        #headerControls .sign-in-link:hover,
-        .header-controls #signInLink:hover,
-        .header-controls a[href="#"]:not(#logoutLink):hover {
-            color: #000000 !important;
-            background-color: #f8f9fa !important;
-            border-color: #f8f9fa !important;
-            text-decoration: none !important;
-            box-shadow: 0 4px 8px rgba(255, 255, 255, 0.3) !important;
-        }
-
-        #signInLink:active,
-        a[id="signInLink"]:active,
-        .sign-in-link:active,
-        #headerControls a[href="#"]:not(#logoutLink):active,
-        #headerControls .sign-in-link:active,
-        .header-controls #signInLink:active,
-        .header-controls a[href="#"]:not(#logoutLink):active {
-            color: #000000 !important;
-            background-color: #e9ecef !important;
-            border-color: #e9ecef !important;
-            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.2) !important;
-            text-decoration: none !important;
-        }
-
-        /* Nuclear option - override any possible blue link styling */
-        a[href="#"]:not(#logoutLink) {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-        }
-
-        /* Ultra-specific override for sign-in link */
-        a#signInLink {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            text-decoration: none !important;
-            font-size: 14px !important;
-            font-weight: bold !important;
-            padding: 8px 16px !important;
-            border-radius: 6px !important;
-            border: 2px solid #ffffff !important;
-            display: inline-block !important;
-            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.2) !important;
-        }
-
-        a#signInLink:link,
-        a#signInLink:visited,
-        a#signInLink:hover,
-        a#signInLink:active {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            text-decoration: none !important;
-        }
-
-        /* Nuclear option - force override all link colors */
-        a[href="#"] {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            text-decoration: none !important;
-            font-size: 14px !important;
-            font-weight: bold !important;
-            padding: 8px 16px !important;
-            border-radius: 6px !important;
-            border: 2px solid #ffffff !important;
-            display: inline-block !important;
-            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.2) !important;
-        }
-
-        /* Override browser default link colors with highest specificity */
-        html body div.header-controls a#signInLink,
-        html body div#headerControls a#signInLink {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            text-decoration: none !important;
-        }
-
-        /* Nuclear override for the "Sign In" link - highest specificity */
-        #headerControls #signInLink,
-        #headerControls a.sign-in-link,
-        #headerControls a[href="#"]:not(#logoutLink),
-        a#signInLink,
-        a#signInLink:link,
-        a#signInLink:visited,
-        a#signInLink:hover,
-        a#signInLink:active,
-        a#signInLink:any-link {
-            color: #111 !important;               /* Dark gray text for contrast */
-            background-color: #fafafa !important; /* High-contrast neutral button */
-            border: 2px solid #e0e0e0 !important;
-            text-decoration: none !important;
-            font-weight: bold !important;
-            border-radius: 6px !important;
-            padding: 8px 16px !important;
-            display: inline-block !important;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
-        }
-
-        #headerControls #signInLink:hover,
-        #headerControls a.sign-in-link:hover,
-        a#signInLink:hover {
-            background-color: #f0f0f0 !important; /* Slight hover feedback */
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3) !important;
-        }
-
-        /* Override any inline styles that might be applied */
-        #signInLink[style] {
-            color: #111 !important;
-            background-color: #fafafa !important;
-        }
-
-        /* ✅ Unified Sign In / Sign Out button styles */
+        /* Header Controls - Simplified Sign In/Out Styling */
         #signInLink,
         #logoutLink {
             display: inline-block;
@@ -1224,49 +989,34 @@
             cursor: pointer;
         }
 
-        /* ✳️ Sign In: bright yellow for high contrast on dark background */
+        /* Sign In: bright yellow for contrast on dark background */
         #signInLink {
-            color: #FFFF00 !important;                  /* bright yellow text */
-            background-color: transparent !important;   /* transparent background */
+            color: #FFFF00 !important;
+            background-color: transparent !important;
             border-color: #FFFF00 !important;
             box-shadow: 0 2px 5px rgba(255, 255, 0, 0.3);
         }
 
         #signInLink:hover,
         #signInLink:focus {
-            color: #ADD8E6 !important;                  /* light blue on hover */
+            color: #ADD8E6 !important;
             border-color: #ADD8E6 !important;
             box-shadow: 0 3px 7px rgba(173, 216, 230, 0.4);
         }
 
-        /* ✅ Sign Out: accessible blue variant */
+        /* Sign Out: accessible blue */
         #logoutLink {
             color: #fff !important;
-            background-color: #3b82f6 !important;       /* accessible blue */
+            background-color: #3b82f6 !important;
             border-color: #3b82f6 !important;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
         }
 
         #logoutLink:hover,
         #logoutLink:focus {
-            background-color: #2563eb !important;       /* darker blue hover */
+            background-color: #2563eb !important;
             border-color: #2563eb !important;
             box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
-        }
-
-        /* 🚫 Ensure browser defaults don't override color */
-        a#signInLink,
-        a#logoutLink,
-        #signInLink:visited,
-        #logoutLink:visited {
-            color: inherit !important;
-        }
-
-        /* 🔒 Inline-style safeguard */
-        #signInLink[style],
-        #logoutLink[style] {
-            color: inherit !important;
-            background-color: inherit !important;
         }
 
         /* Loading state styling */
