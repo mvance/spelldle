@@ -1020,20 +1020,23 @@
         }
 
         .logout-link {
-            color: #ffffff;
+            color: #fff !important;
+            background-color: #5a9fd4 !important; /* Softer blue for accessibility */
+            border-color: #5a9fd4 !important;
+            font-weight: bold !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
             text-decoration: none;
             font-size: 14px;
-            font-weight: bold;
             padding: 8px 16px;
             border-radius: 6px;
             transition: all 0.2s;
-            background-color: var(--blue);
-            border: 2px solid var(--blue);
+            border: 2px solid #5a9fd4;
         }
 
         .logout-link:hover {
-            background-color: #4a8fc4;
-            border-color: #4a8fc4;
+            background-color: #4a8fc4 !important;
+            border-color: #4a8fc4 !important;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35) !important;
             text-decoration: none;
             color: #ffffff;
         }
@@ -1183,21 +1186,28 @@
         a#signInLink:hover,
         a#signInLink:active,
         a#signInLink:any-link {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            border: 2px solid #ffffff !important;
+            color: #111 !important;               /* Dark gray text for contrast */
+            background-color: #fafafa !important; /* High-contrast neutral button */
+            border: 2px solid #e0e0e0 !important;
             text-decoration: none !important;
             font-weight: bold !important;
             border-radius: 6px !important;
             padding: 8px 16px !important;
             display: inline-block !important;
-            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        #headerControls #signInLink:hover,
+        #headerControls a.sign-in-link:hover,
+        a#signInLink:hover {
+            background-color: #f0f0f0 !important; /* Slight hover feedback */
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3) !important;
         }
 
         /* Override any inline styles that might be applied */
         #signInLink[style] {
-            color: #000000 !important;
-            background-color: #ffffff !important;
+            color: #111 !important;
+            background-color: #fafafa !important;
         }
 
         /* Loading state styling */
