@@ -1210,6 +1210,65 @@
             background-color: #fafafa !important;
         }
 
+        /* ✅ Unified Sign In / Sign Out button styles */
+        #signInLink,
+        #logoutLink {
+            display: inline-block;
+            font-weight: 600;
+            font-size: 15px;
+            text-decoration: none !important;
+            border-radius: 6px;
+            padding: 8px 18px;
+            transition: all 0.25s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        /* ✳️ Sign In: light theme with high contrast */
+        #signInLink {
+            color: #111 !important;                     /* dark gray text */
+            background-color: #fafafa !important;       /* soft off-white background */
+            border-color: #ddd !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        }
+
+        #signInLink:hover,
+        #signInLink:focus {
+            background-color: #f0f0f0 !important;
+            border-color: #ccc !important;
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ✅ Sign Out: accessible blue variant */
+        #logoutLink {
+            color: #fff !important;
+            background-color: #3b82f6 !important;       /* accessible blue */
+            border-color: #3b82f6 !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        }
+
+        #logoutLink:hover,
+        #logoutLink:focus {
+            background-color: #2563eb !important;       /* darker blue hover */
+            border-color: #2563eb !important;
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 🚫 Ensure browser defaults don't override color */
+        a#signInLink,
+        a#logoutLink,
+        #signInLink:visited,
+        #logoutLink:visited {
+            color: inherit !important;
+        }
+
+        /* 🔒 Inline-style safeguard */
+        #signInLink[style],
+        #logoutLink[style] {
+            color: inherit !important;
+            background-color: inherit !important;
+        }
+
         /* Loading state styling */
         .lesson-selector.loading {
             opacity: 0.7;
