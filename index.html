@@ -971,48 +971,54 @@
         }
 
 
-        /* Header Controls - Simplified Sign In/Out Styling */
+        /* ✅ Finalized high-contrast buttons for dark background */
         #signInLink,
         #logoutLink {
             display: inline-block;
+            text-decoration: none !important;
             font-weight: 600;
             font-size: 15px;
-            text-decoration: none !important;
             border-radius: 6px;
-            padding: 8px 18px;
+            padding: 8px 16px;
             transition: all 0.25s ease;
-            border: 2px solid transparent;
             cursor: pointer;
+            border: 2px solid transparent;
         }
 
-        /* Sign In: bright yellow for contrast on dark background */
-        #signInLink {
-            color: #FFFF00 !important;
-            background-color: transparent !important;
-            border-color: #FFFF00 !important;
-            box-shadow: 0 2px 5px rgba(255, 255, 0, 0.3);
-        }
-
-        #signInLink:hover,
-        #signInLink:focus {
-            color: #ADD8E6 !important;
-            border-color: #ADD8E6 !important;
-            box-shadow: 0 3px 7px rgba(173, 216, 230, 0.4);
-        }
-
-        /* Sign Out: accessible blue */
-        #logoutLink {
-            color: #fff !important;
-            background-color: #3b82f6 !important;
-            border-color: #3b82f6 !important;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-        }
-
-        #logoutLink:hover,
-        #logoutLink:focus {
+        /* Sign In: vivid blue background, white text */
+        a#signInLink,
+        a#signInLink:link,
+        a#signInLink:visited,
+        a#signInLink:hover,
+        a#signInLink:active {
+            color: #ffffff !important;
             background-color: #2563eb !important;
-            border-color: #2563eb !important;
-            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+            border: 2px solid #2563eb !important;
+            text-decoration: none !important;
+            border-radius: 6px !important;
+            padding: 8px 16px !important;
+            display: inline-block !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Optional: slightly darker hover tone */
+        a#signInLink:hover {
+            background-color: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        /* Sign Out: accessible red */
+        #logoutLink {
+            color: #ffffff !important;
+            background-color: #dc2626 !important;
+            border-color: #dc2626 !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        #logoutLink:hover {
+            background-color: #b91c1c !important;
+            border-color: #b91c1c !important;
         }
 
         /* Loading state styling */
