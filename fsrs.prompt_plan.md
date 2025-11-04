@@ -155,13 +155,13 @@ Requirements:
 ```
 Create the user preferences management system that allows users to configure their maximum reviews per lesson. Include default values and persistence.
 
-Context: This system will control how many review words are included in each session. It should work for both authenticated and unauthenticated users.
+Context: This system will control how many review words are included in each session. Only applies to authenticated users since unauthenticated users have no FSRS data.
 
 Requirements:
-- Create getUserPreferences() function with defaults
+- Create getUserPreferences() function with defaults (maxReviewsPerLesson: 5)
 - Implement updateUserPreferences() function
 - Add preferences loading during app initialization
-- Handle unauthenticated users with localStorage fallback
+- Handle authenticated users only (unauthenticated users have no reviews)
 - Include error handling and validation
 ```
 

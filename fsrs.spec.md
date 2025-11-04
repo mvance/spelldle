@@ -46,7 +46,7 @@ CREATE INDEX idx_fsrs_cards_user_lesson ON fsrs_cards(user_id, lesson_name);
 CREATE TABLE user_preferences (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
-    max_reviews_per_lesson INTEGER NOT NULL DEFAULT 4,
+    max_reviews_per_lesson INTEGER NOT NULL DEFAULT 5,
     desired_retention DECIMAL(3,2) NOT NULL DEFAULT 0.90,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -98,11 +98,11 @@ Based on attempt count within the current game flow:
 - **Distribution**: Split selected reviews between warm-up and post-lesson phases
 
 ### User Preference System
-- **Setting**: `maxReviewsPerLesson` (default: 4)
+- **Setting**: `maxReviewsPerLesson` (default: 5)
 - **Storage**: `user_preferences` table
 - **Behavior**: Limit total review words per session to user's preference
 - **Distribution**: Split between warm-up (2-3) and post-lesson (remainder)
-- **Fallback**: Use default value for unauthenticated users
+- **Note**: Only applies to authenticated users with existing FSRS data
 
 ### Session Building Algorithm
 ```

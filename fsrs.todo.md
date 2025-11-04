@@ -27,7 +27,7 @@
 - [ ] Create user_preferences table:
   - [ ] id (UUID, primary key)
   - [ ] user_id (UUID, foreign key to auth.users, unique)
-  - [ ] max_reviews_per_lesson (INTEGER, default 4)
+  - [ ] max_reviews_per_lesson (INTEGER, default 5)
   - [ ] desired_retention (DECIMAL, default 0.90)
   - [ ] created_at (TIMESTAMPTZ, default NOW())
   - [ ] updated_at (TIMESTAMPTZ, default NOW())
@@ -99,16 +99,14 @@
 ## Phase 3: Session Composition and Review Integration
 
 ### 3.1 Implement User Preferences System
-- [ ] Create getUserPreferences() function with defaults
+- [ ] Create getUserPreferences() function with defaults (maxReviewsPerLesson: 5)
   - [ ] Load from database for authenticated users
-  - [ ] Use localStorage fallback for unauthenticated users
   - [ ] Return default values if no preferences found
+  - [ ] Return null/empty for unauthenticated users (no FSRS data)
 - [ ] Implement updateUserPreferences() function
-  - [ ] Save to database for authenticated users
-  - [ ] Save to localStorage for unauthenticated users
+  - [ ] Save to database for authenticated users only
   - [ ] Validate input parameters
 - [ ] Add preferences loading during app initialization
-- [ ] Handle unauthenticated users with localStorage fallback
 - [ ] Include error handling and validation
 - [ ] Test preferences persistence across sessions
 
