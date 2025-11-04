@@ -1612,6 +1612,111 @@
             }
         }
         
+        // FSRS Attempt Tracking and Grading
+        
+        /**
+         * Calculate FSRS grade based on attempt count
+         * @param {number} attemptCount - Number of attempts made for current word
+         * @returns {number} - FSRS grade (1-4: Again, Hard, Good, Easy)
+         */
+        function calculateFSRSGrade(attemptCount) {
+            // Map attempt count to FSRS grades
+            if (attemptCount === 1) {
+                return 4; // Easy - correct on first try
+            } else if (attemptCount === 2) {
+                return 3; // Good - correct on second try
+            } else if (attemptCount === 3) {
+                return 2; // Hard - correct on third try
+            } else {
+                return 1; // Again - required 4+ attempts
+            }
+        }
+        
+        /**
+         * Initialize word attempt tracking for new word
+         * @param {string} word - The current word
+         * @param {string} lessonName - The lesson name
+         */
+        async function initializeWordAttemptTracking(word, lessonName) {
+            gameState.currentWordAttempts = 0;
+            gameState.currentWordFSRSCard = null;
+            
+            // Try to find existing FSRS card for this word
+            if (isAuthenticated()) {
+                try {
+                    const existingCard = await getFSRSCardByWord(word, lessonName);
+                    if (existingCard) {
+                        gameState.currentWordFSRSCard = existingCard;
+                        console.log(`Found existing FSRS card for word: ${word}`);
+                    } else {
+                        console.log(`No existing FSRS card found for word: ${word}`);
+                    }
+                } catch (error) {
+                    console.error('Error checking for existing FSRS card:', error);
+                }
+            }
+            
+            console.log(`Initialized attempt tracking for word: ${word}, attempts: ${gameState.currentWordAttempts}`);
+        }
+        
+        /**
+         * Track an attempt for the current word
+         * @param {boolean} isCorrect - Whether the attempt was correct
+         */
+        function trackWordAttempt(isCorrect) {
+            gameState.currentWordAttempts++;
+            console.log(`Tracked attempt ${gameState.currentWordAttempts} for word: ${gameState.currentWord}, correct: ${isCorrect}`);
+            
+            // If this is the first attempt and user is authenticated, create FSRS card
+            if (gameState.currentWordAttempts === 1 && isAuthenticated() && !gameState.currentWordFSRSCard) {
+                createFSRSCardForCurrentWord();
+            }
+        }
+        
+        /**
+         * Create FSRS card for current word on first attempt
+         */
+        async function createFSRSCardForCurrentWord() {
+            if (!isAuthenticated() || !gameState.currentWord) {
+                return;
+            }
+            
+            try {
+                console.log(`Creating FSRS card for current word: ${gameState.currentWord}`);
+                const card = await createFSRSCard(gameState.currentWord, gameState.currentLesson);
+                if (card) {
+                    gameState.currentWordFSRSCard = card;
+                    console.log('FSRS card created and stored in game state');
+                }
+            } catch (error) {
+                console.error('Failed to create FSRS card for current word:', error);
+            }
+        }
+        
+        /**
+         * Complete word and update FSRS card with final grade
+         */
+        async function completeWordWithFSRSUpdate() {
+            if (!isAuthenticated() || !gameState.currentWordFSRSCard) {
+                console.log('Skipping FSRS update - not authenticated or no card');
+                return;
+            }
+            
+            try {
+                const grade = calculateFSRSGrade(gameState.currentWordAttempts);
+                console.log(`Completing word "${gameState.currentWord}" with ${gameState.currentWordAttempts} attempts, FSRS grade: ${grade}`);
+                
+                const updatedCard = await updateFSRSCard(gameState.currentWordFSRSCard.id, grade);
+                if (updatedCard) {
+                    console.log('FSRS card updated successfully on word completion');
+                } else {
+                    console.warn('FSRS card update failed on word completion');
+                }
+            } catch (error) {
+                console.error('Error updating FSRS card on word completion:', error);
+            }
+        }
+        
         // Initialize Supabase client
         let supabase = null;
         try {
@@ -2399,7 +2504,9 @@
             correctGuesses: 0,
             totalGuesses: 0,
             lessonStartTime: null,
-            hadIncorrectGuess: false // Track if user made incorrect guess in initial phase
+            hadIncorrectGuess: false, // Track if user made incorrect guess in initial phase
+            currentWordAttempts: 0, // Track attempts for current word
+            currentWordFSRSCard: null // Store FSRS card for current word
         };
 
         // Text-to-speech variables
@@ -3730,8 +3837,12 @@
             clearValidationMessage();
             console.log(`User guessed: "${guess}" for target: "${gameState.currentWord}"`);
             
+            // Track this attempt
+            const isCorrect = guess === gameState.currentWord;
+            trackWordAttempt(isCorrect);
+            
             // Case-sensitive word comparison
-            if (guess === gameState.currentWord) {
+            if (isCorrect) {
                 // Correct guess - play "Correct!" and advance to next word
                 handleCorrectGuess();
             } else {
@@ -4005,8 +4116,12 @@
             
             console.log(`Clue phase guess: "${guess}" for target: "${gameState.currentWord}"`);
             
+            // Track this attempt
+            const isCorrect = guess === gameState.currentWord;
+            trackWordAttempt(isCorrect);
+            
             // Check if guess is correct
-            if (guess === gameState.currentWord) {
+            if (isCorrect) {
                 // Save correct spelling attempt to localStorage
                 saveSpellingAttempt(guess, true);
                 // Track the guess for lesson stats
@@ -4322,7 +4437,10 @@
         }
 
         // Advance to next word
-        function advanceToNextWord() {
+        async function advanceToNextWord() {
+            // Complete current word with FSRS update
+            await completeWordWithFSRSUpdate();
+            
             gameState.currentWordIndex++;
             if (gameState.currentWordIndex < gameState.totalWords) {
                 // Reset to Initial Guess Phase for new word
@@ -4333,6 +4451,9 @@
                     gameState.currentWord = wordData.word;
                     gameState.currentSentence = wordData.sentence;
                     updateProgressCounter();
+                    
+                    // Initialize attempt tracking for new word
+                    await initializeWordAttemptTracking(gameState.currentWord, gameState.currentLesson);
                     
                     // Hide clue phase and show initial guess input for new word
                     hideCluePhase();
@@ -4411,7 +4532,7 @@
         }
 
         // Initialize the game
-        function initializeGame() {
+        async function initializeGame() {
             try {
                 gameState.gameStarted = true;
                 gameState.currentWordIndex = 0;
@@ -4423,6 +4544,9 @@
                     gameState.currentSentence = wordData.sentence;
                     
                     updateProgressCounter();
+                    
+                    // Initialize attempt tracking for first word
+                    await initializeWordAttemptTracking(gameState.currentWord, gameState.currentLesson);
                     
                     // Hide welcome screen and start button
                     const welcomeScreen = document.getElementById('welcomeScreen');
