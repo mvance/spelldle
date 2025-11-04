@@ -6,7 +6,7 @@
     <title>Spelldle</title>
     
     <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.skypack.dev https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://gist.githubusercontent.com https://*.supabase.co;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.skypack.dev https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://gist.githubusercontent.com https://*.supabase.co https://cdn.jsdelivr.net;">
     
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
@@ -27,7 +27,7 @@
             crossorigin="anonymous"></script>
     
     <!-- FSRS Library CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@latest/dist/fsrs.min.js" 
+    <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@4.1.0/dist/index.global.js" 
             crossorigin="anonymous"></script>
     <style>
         /* CSS Reset */
@@ -1298,8 +1298,9 @@
         // Initialize FSRS Library
         function initializeFSRS() {
             try {
-                if (typeof window.FSRS !== 'undefined') {
-                    fsrsLibrary = new window.FSRS(fsrsConfig);
+                if (typeof window.fsrs !== 'undefined') {
+                    const { FSRS } = window.fsrs;
+                    fsrsLibrary = new FSRS(fsrsConfig);
                     fsrsInitialized = true;
                     console.log('FSRS library initialized successfully with config:', fsrsConfig);
                     return true;

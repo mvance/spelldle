@@ -3,7 +3,7 @@
 ## Phase 1: Foundation Setup
 
 ### 1.1 Add FSRS Library Integration
-- [x] Add ts-fsrs CDN script tag to index.html head section: https://cdn.jsdelivr.net/npm/ts-fsrs@latest/dist/fsrs.min.js
+- [x] Add ts-fsrs CDN script tag to index.html head section: https://cdn.jsdelivr.net/npm/ts-fsrs@4.1.0/dist/index.global.js
 - [x] Create fsrsConfig object with default parameters (desiredRetention: 0.9, maxInterval: 36500)
 - [x] Add initialization check and error handling for CDN failures
 - [x] Test basic FSRS functions (createCard, repeat) in browser console
