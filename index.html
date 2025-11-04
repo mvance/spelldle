@@ -27,8 +27,11 @@
             crossorigin="anonymous"></script>
     
     <!-- FSRS Library CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@4.1.0/dist/index.global.js" 
-            crossorigin="anonymous"></script>
+    <script type="module">
+        import * as tsFsrs from 'https://cdn.jsdelivr.net/npm/ts-fsrs@5.2.3/+esm';
+        window.tsFsrs = tsFsrs;
+        console.log('FSRS library loaded via ES modules');
+    </script>
     <style>
         /* CSS Reset */
         * {
@@ -1283,8 +1286,9 @@
     <script>
         // FSRS Configuration
         const fsrsConfig = {
-            desiredRetention: 0.9,
-            maxInterval: 36500
+            maximum_interval: 36500,
+            enable_fuzz: true,
+            enable_short_term: false
         };
         
         // FSRS Library State
@@ -1298,9 +1302,10 @@
         // Initialize FSRS Library
         function initializeFSRS() {
             try {
-                if (typeof window.fsrs !== 'undefined') {
-                    const { FSRS } = window.fsrs;
-                    fsrsLibrary = new FSRS(fsrsConfig);
+                if (typeof window.tsFsrs !== 'undefined') {
+                    const { fsrs, generatorParameters } = window.tsFsrs;
+                    const params = generatorParameters(fsrsConfig);
+                    fsrsLibrary = fsrs(params);
                     fsrsInitialized = true;
                     console.log('FSRS library initialized successfully with config:', fsrsConfig);
                     return true;
@@ -1323,13 +1328,18 @@
             }
             
             try {
-                // Test createCard function
-                const testCard = fsrsLibrary.createCard();
-                console.log('FSRS createCard test passed:', testCard);
+                // Test createEmptyCard function
+                const { createEmptyCard, Rating } = window.tsFsrs;
+                const testCard = createEmptyCard();
+                console.log('FSRS createEmptyCard test passed:', testCard);
                 
                 // Test repeat function with a basic scenario
-                const testResult = fsrsLibrary.repeat(testCard, new Date(), 3); // Good grade
+                const testResult = fsrsLibrary.repeat(testCard, new Date());
                 console.log('FSRS repeat test passed:', testResult);
+                
+                // Test accessing a specific rating result
+                const goodResult = testResult[Rating.Good];
+                console.log('FSRS Good rating result:', goodResult);
                 
                 return true;
             } catch (error) {
@@ -1361,7 +1371,8 @@
                 console.log(`Creating FSRS card for word: "${word}", lesson: "${lessonName}"`);
                 
                 // Create initial FSRS card using library
-                const fsrsCard = fsrsLibrary.createCard();
+                const { createEmptyCard } = window.tsFsrs;
+                const fsrsCard = createEmptyCard();
                 
                 // Use retry logic for database operation
                 const result = await retryOperation(async () => {
@@ -1445,15 +1456,29 @@
                 
                 // Create FSRS card object from current data
                 const fsrsCard = {
-                    difficulty: currentCard.difficulty,
+                    due: new Date(currentCard.next_due),
                     stability: currentCard.stability,
-                    last_review: currentCard.last_review ? new Date(currentCard.last_review) : null,
-                    review_count: currentCard.review_count
+                    difficulty: currentCard.difficulty,
+                    elapsed_days: currentCard.last_review ? 
+                        Math.floor((Date.now() - new Date(currentCard.last_review).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+                    scheduled_days: 0,
+                    learning_steps: 0,
+                    reps: currentCard.review_count,
+                    lapses: 0,
+                    state: currentCard.review_count === 0 ? 0 : 2, // New or Review state
+                    last_review: currentCard.last_review ? new Date(currentCard.last_review) : undefined
                 };
                 
                 // Calculate new FSRS parameters
                 const now = new Date();
-                const updatedCard = fsrsLibrary.repeat(fsrsCard, now, grade);
+                const { Rating } = window.tsFsrs;
+                const schedulingResults = fsrsLibrary.repeat(fsrsCard, now);
+                
+                // Map grade to Rating enum and get the result
+                const ratingMap = { 1: Rating.Again, 2: Rating.Hard, 3: Rating.Good, 4: Rating.Easy };
+                const rating = ratingMap[grade] || Rating.Good;
+                const updatedResult = schedulingResults[rating];
+                const updatedCard = updatedResult.card;
                 
                 // Use retry logic for database update
                 const result = await retryOperation(async () => {
@@ -1463,8 +1488,8 @@
                             difficulty: updatedCard.difficulty,
                             stability: updatedCard.stability,
                             last_review: now.toISOString(),
-                            next_due: updatedCard.next_due.toISOString(),
-                            review_count: currentCard.review_count + 1,
+                            next_due: updatedCard.due.toISOString(),
+                            review_count: updatedCard.reps,
                             updated_at: now.toISOString()
                         })
                         .eq('id', cardId)
