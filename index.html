@@ -2953,10 +2953,9 @@
                         .from('spelling_attempts')
                         .insert({
                             user_id: authState.user.id,
-                            lesson_name: gameState.currentLesson || 'Fallback Word List',
-                            word_target: gameState.currentWord,
-                            spelling_guess: guess,
-                            result: isCorrect ? 'correct' : 'incorrect'
+                            word: gameState.currentWord,
+                            is_correct: isCorrect,
+                            attempt_timestamp: new Date().toISOString()
                         });
                     
                     if (error) {
