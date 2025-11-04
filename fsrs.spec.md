@@ -280,8 +280,7 @@ DROP TABLE IF EXISTS spelling_attempts;
 ```
 
 ### Code Deployment
-- Feature flag for FSRS system
-- Gradual rollout to user segments
+- Direct deployment of FSRS-integrated system
 - Monitoring and rollback procedures
 - Performance baseline establishment
 
