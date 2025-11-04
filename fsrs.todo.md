@@ -10,30 +10,30 @@
 - [x] Verify library loads correctly and logs success message
 
 ### 1.2 Create Database Schema Migration
-- [ ] Drop existing spelling_attempts table in Supabase
-- [ ] Create fsrs_cards table with all specified columns:
-  - [ ] id (UUID, primary key)
-  - [ ] user_id (UUID, foreign key to auth.users)
-  - [ ] word (TEXT)
-  - [ ] lesson_name (TEXT)
-  - [ ] difficulty (DECIMAL, default 1.3)
-  - [ ] stability (DECIMAL, default 2.1)
-  - [ ] last_review (TIMESTAMPTZ)
-  - [ ] next_due (TIMESTAMPTZ)
-  - [ ] review_count (INTEGER, default 0)
-  - [ ] created_at (TIMESTAMPTZ, default NOW())
-  - [ ] updated_at (TIMESTAMPTZ, default NOW())
-- [ ] Add unique constraint on (user_id, word, lesson_name)
-- [ ] Create user_preferences table:
-  - [ ] id (UUID, primary key)
-  - [ ] user_id (UUID, foreign key to auth.users, unique)
-  - [ ] max_reviews_per_lesson (INTEGER, default 5)
-  - [ ] desired_retention (DECIMAL, default 0.90)
-  - [ ] created_at (TIMESTAMPTZ, default NOW())
-  - [ ] updated_at (TIMESTAMPTZ, default NOW())
-- [ ] Create performance indexes:
-  - [ ] idx_fsrs_cards_user_due on fsrs_cards(user_id, next_due)
-  - [ ] idx_fsrs_cards_user_lesson on fsrs_cards(user_id, lesson_name)
+- [x] Drop existing spelling_attempts table in Supabase
+- [x] Create fsrs_cards table with all specified columns:
+  - [x] id (UUID, primary key)
+  - [x] user_id (UUID, foreign key to auth.users)
+  - [x] word (TEXT)
+  - [x] lesson_name (TEXT)
+  - [x] difficulty (DECIMAL, default 1.3)
+  - [x] stability (DECIMAL, default 2.1)
+  - [x] last_review (TIMESTAMPTZ)
+  - [x] next_due (TIMESTAMPTZ)
+  - [x] review_count (INTEGER, default 0)
+  - [x] created_at (TIMESTAMPTZ, default NOW())
+  - [x] updated_at (TIMESTAMPTZ, default NOW())
+- [x] Add unique constraint on (user_id, word, lesson_name)
+- [x] Create user_preferences table:
+  - [x] id (UUID, primary key)
+  - [x] user_id (UUID, foreign key to auth.users, unique)
+  - [x] max_reviews_per_lesson (INTEGER, default 5)
+  - [x] desired_retention (DECIMAL, default 0.90)
+  - [x] created_at (TIMESTAMPTZ, default NOW())
+  - [x] updated_at (TIMESTAMPTZ, default NOW())
+- [x] Create performance indexes:
+  - [x] idx_fsrs_cards_user_due on fsrs_cards(user_id, next_due)
+  - [x] idx_fsrs_cards_user_lesson on fsrs_cards(user_id, lesson_name)
 - [ ] Add Row Level Security (RLS) policies for both tables
 - [ ] Test table creation and constraints work correctly
 
