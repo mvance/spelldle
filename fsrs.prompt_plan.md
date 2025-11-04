@@ -66,8 +66,8 @@ Add the ts-fsrs library via CDN to index.html and create basic FSRS configuratio
 Context: The application currently uses Papa Parse and Canvas Confetti via CDN. Follow the same pattern for ts-fsrs integration.
 
 Requirements:
-- Add CDN script tag in head section
-- Create fsrsConfig object with default parameters
+- Add CDN script tag in head section: https://cdn.jsdelivr.net/npm/ts-fsrs@latest/dist/fsrs.min.js
+- Create fsrsConfig object with default parameters (desiredRetention: 0.9, maxInterval: 36500)
 - Add initialization check and error handling
 - Test basic FSRS functions (createCard, repeat)
 ```
@@ -141,7 +141,7 @@ Context: This integrates with the existing advanceToNextWord function and should
 Requirements:
 - Queue FSRS updates after word completion instead of immediate processing
 - Use calculated grade from attempt tracking
-- Implement batched update processing at intervals and session end
+- Implement batched update processing with threshold of 5 updates and timer-based triggers
 - Implement error handling that doesn't block game progression
 - Add retry queue for failed batch updates
 - Update card's next_due date and other FSRS parameters in batches

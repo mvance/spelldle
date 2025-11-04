@@ -3,7 +3,7 @@
 ## Phase 1: Foundation Setup
 
 ### 1.1 Add FSRS Library Integration
-- [ ] Add ts-fsrs CDN script tag to index.html head section
+- [ ] Add ts-fsrs CDN script tag to index.html head section: https://cdn.jsdelivr.net/npm/ts-fsrs@latest/dist/fsrs.min.js
 - [ ] Create fsrsConfig object with default parameters (desiredRetention: 0.9, maxInterval: 36500)
 - [ ] Add initialization check and error handling for CDN failures
 - [ ] Test basic FSRS functions (createCard, repeat) in browser console
@@ -87,7 +87,7 @@
 - [ ] Modify advanceToNextWord function to queue FSRS updates
 - [ ] Implement queueFSRSUpdate(word, grade) function
 - [ ] Create processFSRSBatch() function for batch processing
-- [ ] Add batch processing triggers (threshold and timer-based)
+- [ ] Add batch processing triggers (threshold of 5 updates and timer-based)
 - [ ] Use calculated grade from attempt tracking
 - [ ] Implement error handling that doesn't block game progression
 - [ ] Add retry queue for failed batch updates
