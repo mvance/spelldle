@@ -3,11 +3,11 @@
 ## Phase 1: Foundation Setup
 
 ### 1.1 Add FSRS Library Integration
-- [ ] Add ts-fsrs CDN script tag to index.html head section: https://cdn.jsdelivr.net/npm/ts-fsrs@latest/dist/fsrs.min.js
-- [ ] Create fsrsConfig object with default parameters (desiredRetention: 0.9, maxInterval: 36500)
-- [ ] Add initialization check and error handling for CDN failures
-- [ ] Test basic FSRS functions (createCard, repeat) in browser console
-- [ ] Verify library loads correctly and logs success message
+- [x] Add ts-fsrs CDN script tag to index.html head section: https://cdn.jsdelivr.net/npm/ts-fsrs@latest/dist/fsrs.min.js
+- [x] Create fsrsConfig object with default parameters (desiredRetention: 0.9, maxInterval: 36500)
+- [x] Add initialization check and error handling for CDN failures
+- [x] Test basic FSRS functions (createCard, repeat) in browser console
+- [x] Verify library loads correctly and logs success message
 
 ### 1.2 Create Database Schema Migration
 - [ ] Drop existing spelling_attempts table in Supabase

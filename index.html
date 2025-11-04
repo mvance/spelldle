@@ -25,6 +25,10 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js" 
             integrity="sha384-0esPaJH+F9evp2lsJYN36SW7XkRbaYviuyF+PpnbjDXBC9i1CWGiJyGrXCyiyGqZ" 
             crossorigin="anonymous"></script>
+    
+    <!-- FSRS Library CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/ts-fsrs@latest/dist/fsrs.min.js" 
+            crossorigin="anonymous"></script>
     <style>
         /* CSS Reset */
         * {
@@ -1277,9 +1281,61 @@
     </div>
 
     <script>
+        // FSRS Configuration
+        const fsrsConfig = {
+            desiredRetention: 0.9,
+            maxInterval: 36500
+        };
+        
+        // FSRS Library State
+        let fsrsLibrary = null;
+        let fsrsInitialized = false;
+        
         // Supabase configuration
         const SUPABASE_URL = 'https://kgnqutpeerhmlddhjoza.supabase.co'; // Replace with your Supabase project URL
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnbnF1dHBlZXJobWxkZGhqb3phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM0MDI0NzYsImV4cCI6MjA2ODk3ODQ3Nn0.TWQq1X9T4rQXOd13xLkBkuEhbgpn1ygm4dJtHMq4Sco'; // Replace with your Supabase anon key
+        
+        // Initialize FSRS Library
+        function initializeFSRS() {
+            try {
+                if (typeof window.FSRS !== 'undefined') {
+                    fsrsLibrary = new window.FSRS(fsrsConfig);
+                    fsrsInitialized = true;
+                    console.log('FSRS library initialized successfully with config:', fsrsConfig);
+                    return true;
+                } else {
+                    throw new Error('FSRS library not found on window object');
+                }
+            } catch (error) {
+                console.error('Failed to initialize FSRS library:', error);
+                fsrsInitialized = false;
+                showErrorToast('FSRS library failed to load. Spaced repetition features unavailable.', 'warning', 5000);
+                return false;
+            }
+        }
+        
+        // Test basic FSRS functions
+        function testFSRSFunctions() {
+            if (!fsrsInitialized || !fsrsLibrary) {
+                console.warn('FSRS not initialized, skipping function tests');
+                return false;
+            }
+            
+            try {
+                // Test createCard function
+                const testCard = fsrsLibrary.createCard();
+                console.log('FSRS createCard test passed:', testCard);
+                
+                // Test repeat function with a basic scenario
+                const testResult = fsrsLibrary.repeat(testCard, new Date(), 3); // Good grade
+                console.log('FSRS repeat test passed:', testResult);
+                
+                return true;
+            } catch (error) {
+                console.error('FSRS function tests failed:', error);
+                return false;
+            }
+        }
         
         // Initialize Supabase client
         let supabase = null;
@@ -4128,6 +4184,12 @@
                 console.log('Spelldle initialized');
                 console.log('Current game state:', gameState);
                 checkTTSSupport();
+                
+                // Initialize FSRS library
+                const fsrsSuccess = initializeFSRS();
+                if (fsrsSuccess) {
+                    testFSRSFunctions();
+                }
                 
                 // Set up authentication modal event listeners first
                 setupAuthModalEventListeners();
