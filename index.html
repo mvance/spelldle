@@ -1337,6 +1337,255 @@
             }
         }
         
+        // FSRS Card Operations
+        
+        /**
+         * Create a new FSRS card for a word
+         * @param {string} word - The word to create a card for
+         * @param {string} lessonName - The lesson name (optional)
+         * @returns {Object|null} - Created card object or null on failure
+         */
+        async function createFSRSCard(word, lessonName = null) {
+            if (!fsrsInitialized || !fsrsLibrary) {
+                console.warn('FSRS not initialized, cannot create card');
+                return null;
+            }
+            
+            if (!isAuthenticated()) {
+                console.log('User not authenticated, skipping FSRS card creation');
+                return null;
+            }
+            
+            try {
+                console.log(`Creating FSRS card for word: "${word}", lesson: "${lessonName}"`);
+                
+                // Create initial FSRS card using library
+                const fsrsCard = fsrsLibrary.createCard();
+                
+                // Use retry logic for database operation
+                const result = await retryOperation(async () => {
+                    const { data, error } = await supabase
+                        .from('fsrs_cards')
+                        .insert({
+                            user_id: authState.user.id,
+                            word: word,
+                            lesson_name: lessonName,
+                            difficulty: fsrsCard.difficulty,
+                            stability: fsrsCard.stability,
+                            last_review: null,
+                            next_due: new Date().toISOString(),
+                            review_count: 0
+                        })
+                        .select()
+                        .single();
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    return data;
+                }, 3, 1000);
+                
+                console.log('FSRS card created successfully:', result);
+                logDatabaseOperation('create_card', true, { word, lessonName });
+                return result;
+                
+            } catch (error) {
+                console.error('Failed to create FSRS card:', error);
+                logDatabaseOperation('create_card', false, error);
+                
+                // Handle specific error types
+                if (error.message?.includes('duplicate key')) {
+                    console.log('Card already exists for this word/lesson combination');
+                    return null;
+                }
+                
+                // Handle storage error with user feedback
+                handleStorageError(error, 'create FSRS card');
+                return null;
+            }
+        }
+        
+        /**
+         * Update an FSRS card with a new grade
+         * @param {string} cardId - The card ID to update
+         * @param {number} grade - FSRS grade (1-4: Again, Hard, Good, Easy)
+         * @returns {Object|null} - Updated card object or null on failure
+         */
+        async function updateFSRSCard(cardId, grade) {
+            if (!fsrsInitialized || !fsrsLibrary) {
+                console.warn('FSRS not initialized, cannot update card');
+                return null;
+            }
+            
+            if (!isAuthenticated()) {
+                console.log('User not authenticated, skipping FSRS card update');
+                return null;
+            }
+            
+            try {
+                console.log(`Updating FSRS card ${cardId} with grade: ${grade}`);
+                
+                // First, get the current card data
+                const { data: currentCard, error: fetchError } = await supabase
+                    .from('fsrs_cards')
+                    .select('*')
+                    .eq('id', cardId)
+                    .eq('user_id', authState.user.id)
+                    .single();
+                
+                if (fetchError) {
+                    throw fetchError;
+                }
+                
+                if (!currentCard) {
+                    throw new Error('Card not found or access denied');
+                }
+                
+                // Create FSRS card object from current data
+                const fsrsCard = {
+                    difficulty: currentCard.difficulty,
+                    stability: currentCard.stability,
+                    last_review: currentCard.last_review ? new Date(currentCard.last_review) : null,
+                    review_count: currentCard.review_count
+                };
+                
+                // Calculate new FSRS parameters
+                const now = new Date();
+                const updatedCard = fsrsLibrary.repeat(fsrsCard, now, grade);
+                
+                // Use retry logic for database update
+                const result = await retryOperation(async () => {
+                    const { data, error } = await supabase
+                        .from('fsrs_cards')
+                        .update({
+                            difficulty: updatedCard.difficulty,
+                            stability: updatedCard.stability,
+                            last_review: now.toISOString(),
+                            next_due: updatedCard.next_due.toISOString(),
+                            review_count: currentCard.review_count + 1,
+                            updated_at: now.toISOString()
+                        })
+                        .eq('id', cardId)
+                        .eq('user_id', authState.user.id)
+                        .select()
+                        .single();
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    return data;
+                }, 3, 1000);
+                
+                console.log('FSRS card updated successfully:', result);
+                logDatabaseOperation('update_card', true, { cardId, grade });
+                return result;
+                
+            } catch (error) {
+                console.error('Failed to update FSRS card:', error);
+                logDatabaseOperation('update_card', false, error);
+                
+                // Handle storage error with user feedback
+                handleStorageError(error, 'update FSRS card');
+                return null;
+            }
+        }
+        
+        /**
+         * Get due review cards for a user
+         * @param {string} userId - The user ID (optional, uses current user if not provided)
+         * @param {number} limit - Maximum number of cards to return
+         * @returns {Array} - Array of due cards or empty array on failure
+         */
+        async function getDueReviewCards(userId = null, limit = 10) {
+            if (!isAuthenticated()) {
+                console.log('User not authenticated, no review cards available');
+                return [];
+            }
+            
+            const targetUserId = userId || authState.user.id;
+            
+            try {
+                console.log(`Getting due review cards for user: ${targetUserId}, limit: ${limit}`);
+                
+                // Use retry logic for database query
+                const result = await retryOperation(async () => {
+                    const { data, error } = await supabase
+                        .from('fsrs_cards')
+                        .select('*')
+                        .eq('user_id', targetUserId)
+                        .lte('next_due', new Date().toISOString())
+                        .order('next_due', { ascending: true })
+                        .limit(limit);
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    return data || [];
+                }, 3, 1000);
+                
+                console.log(`Retrieved ${result.length} due review cards`);
+                logDatabaseOperation('get_due_cards', true, { count: result.length, limit });
+                return result;
+                
+            } catch (error) {
+                console.error('Failed to get due review cards:', error);
+                logDatabaseOperation('get_due_cards', false, error);
+                
+                // Handle storage error with user feedback
+                handleStorageError(error, 'load review cards');
+                return [];
+            }
+        }
+        
+        /**
+         * Get FSRS card by word and lesson
+         * @param {string} word - The word to find
+         * @param {string} lessonName - The lesson name (optional)
+         * @returns {Object|null} - Found card or null
+         */
+        async function getFSRSCardByWord(word, lessonName = null) {
+            if (!isAuthenticated()) {
+                console.log('User not authenticated, cannot get FSRS card');
+                return null;
+            }
+            
+            try {
+                console.log(`Getting FSRS card for word: "${word}", lesson: "${lessonName}"`);
+                
+                let query = supabase
+                    .from('fsrs_cards')
+                    .select('*')
+                    .eq('user_id', authState.user.id)
+                    .eq('word', word);
+                
+                if (lessonName) {
+                    query = query.eq('lesson_name', lessonName);
+                }
+                
+                const { data, error } = await query.single();
+                
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        // No rows returned - card doesn't exist
+                        console.log('No FSRS card found for this word/lesson');
+                        return null;
+                    }
+                    throw error;
+                }
+                
+                console.log('FSRS card found:', data);
+                return data;
+                
+            } catch (error) {
+                console.error('Failed to get FSRS card by word:', error);
+                logDatabaseOperation('get_card_by_word', false, error);
+                return null;
+            }
+        }
+        
         // Initialize Supabase client
         let supabase = null;
         try {

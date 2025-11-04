@@ -38,21 +38,21 @@
 - [ ] Test table creation and constraints work correctly
 
 ### 1.3 Implement Basic FSRS Card Operations
-- [ ] Create createFSRSCard(word, lessonName) function
-  - [ ] Use FSRS library's createCard() method for initial values
-  - [ ] Handle authenticated vs unauthenticated users
-  - [ ] Return card object or null on failure
-- [ ] Create updateFSRSCard(cardId, grade) function
-  - [ ] Use FSRS library's repeat() function
-  - [ ] Update database with new FSRS parameters
-  - [ ] Handle network failures gracefully
-- [ ] Create getDueReviewCards(userId, limit) function
-  - [ ] Query cards where next_due <= NOW()
-  - [ ] Sort by next_due ASC (most overdue first)
-  - [ ] Respect limit parameter
-- [ ] Implement retry logic with exponential backoff for all operations
-- [ ] Add detailed error logging and user feedback
-- [ ] Test all functions with mock data
+- [x] Create createFSRSCard(word, lessonName) function
+  - [x] Use FSRS library's createCard() method for initial values
+  - [x] Handle authenticated vs unauthenticated users
+  - [x] Return card object or null on failure
+- [x] Create updateFSRSCard(cardId, grade) function
+  - [x] Use FSRS library's repeat() function
+  - [x] Update database with new FSRS parameters
+  - [x] Handle network failures gracefully
+- [x] Create getDueReviewCards(userId, limit) function
+  - [x] Query cards where next_due <= NOW()
+  - [x] Sort by next_due ASC (most overdue first)
+  - [x] Respect limit parameter
+- [x] Implement retry logic with exponential backoff for all operations
+- [x] Add detailed error logging and user feedback
+- [x] Test all functions with mock data
 
 ## Phase 2: Core FSRS Logic Integration
 
