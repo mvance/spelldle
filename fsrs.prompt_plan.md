@@ -132,18 +132,19 @@ Requirements:
 - Add error handling for card creation failures
 ```
 
-### 2.3 Implement FSRS Card Updates After Word Completion
+### 2.3 Implement FSRS Card Updates with Batching
 ```
-Modify the word completion flow to update FSRS cards with the calculated grade. Ensure the game continues even if FSRS updates fail.
+Modify the word completion flow to queue FSRS updates for batched processing. Implement batching system for better performance and error handling.
 
-Context: This integrates with the existing advanceToNextWord function and should happen after each word is completed, regardless of how many attempts it took.
+Context: This integrates with the existing advanceToNextWord function and should queue updates during session, processing them in batches.
 
 Requirements:
-- Call FSRS update function after word completion
+- Queue FSRS updates after word completion instead of immediate processing
 - Use calculated grade from attempt tracking
+- Implement batched update processing at intervals and session end
 - Implement error handling that doesn't block game progression
-- Add retry queue for failed updates
-- Update card's next_due date and other FSRS parameters
+- Add retry queue for failed batch updates
+- Update card's next_due date and other FSRS parameters in batches
 ```
 
 ## Phase 3: Session Composition and Review Integration
@@ -180,17 +181,19 @@ Requirements:
 
 ### 3.3 Implement Session Building Algorithm
 ```
-Modify the lesson start flow to build hybrid sessions that combine lesson words with selected review words. Ensure seamless integration without UI changes.
+Modify the lesson start flow to build hybrid sessions using the front-load + post-lesson model. Implement warm-up reviews at start and micro-reviews at end.
 
-Context: This modifies the existing startSelectedLesson function to create mixed sessions while maintaining the current user experience.
+Context: This modifies the existing startSelectedLesson function to create the two-phase hybrid session while maintaining the current user experience.
 
 Requirements:
-- Modify startSelectedLesson to include review words
-- Replace last N lesson words with review words as specified
-- Maintain total session length
+- Modify startSelectedLesson to include warm-up reviews at start
+- Add post-lesson review queue for session end
+- Split selected reviews between warm-up and post-lesson phases
+- Maintain natural lesson flow without UI distinction
 - Work with both CSV lessons and fallback word list
 - Preserve existing lesson flow and UI
 - Add session composition logging
+- Implement automatic post-lesson review trigger
 ```
 
 ## Phase 4: Error Handling and Resilience

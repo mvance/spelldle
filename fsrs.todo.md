@@ -82,15 +82,19 @@
 - [ ] Test with new words and repeated words
 - [ ] Test with authentication state changes
 
-### 2.3 Implement FSRS Card Updates After Word Completion
-- [ ] Modify advanceToNextWord function to update FSRS cards
-- [ ] Call FSRS update function after word completion
+### 2.3 Implement FSRS Card Updates with Batching
+- [ ] Create FSRS update queue system for batching
+- [ ] Modify advanceToNextWord function to queue FSRS updates
+- [ ] Implement queueFSRSUpdate(word, grade) function
+- [ ] Create processFSRSBatch() function for batch processing
+- [ ] Add batch processing triggers (threshold and timer-based)
 - [ ] Use calculated grade from attempt tracking
 - [ ] Implement error handling that doesn't block game progression
-- [ ] Add retry queue for failed updates
-- [ ] Update card's next_due date and other FSRS parameters
+- [ ] Add retry queue for failed batch updates
+- [ ] Update card's next_due date and other FSRS parameters in batches
 - [ ] Test with various completion scenarios
-- [ ] Test error handling and retry mechanisms
+- [ ] Test batch processing and error handling
+- [ ] Test retry mechanisms for failed batches
 
 ## Phase 3: Session Composition and Review Integration
 
@@ -119,16 +123,18 @@
 - [ ] Test with different user preference values
 
 ### 3.3 Implement Session Building Algorithm
-- [ ] Modify startSelectedLesson function to include review words
+- [ ] Modify startSelectedLesson function to implement front-load + post-lesson model
 - [ ] Load selected lesson words as before
 - [ ] Query and select due review words
-- [ ] Replace last N lesson words with review words
-- [ ] Maintain total session length
+- [ ] Split selected reviews into warmUp and postLesson queues
+- [ ] Build sessionQueue with warm-up reviews at start
+- [ ] Set sessionEndQueue with remaining reviews
+- [ ] Implement automatic post-lesson review trigger
 - [ ] Work with both CSV lessons and fallback word list
 - [ ] Preserve existing lesson flow and UI
 - [ ] Add session composition logging
-- [ ] Test hybrid session creation
-- [ ] Test edge cases (no reviews, all reviews, etc.)
+- [ ] Test hybrid session creation with two-phase model
+- [ ] Test edge cases (no reviews, few reviews, many reviews)
 
 ## Phase 4: Error Handling and Resilience
 
@@ -171,13 +177,15 @@
   - [ ] Grade assignment based on attempts
 - [ ] Test returning user with existing cards
   - [ ] Review word selection and inclusion
-  - [ ] Session composition with mixed content
+  - [ ] Two-phase session composition (warm-up + post-lesson)
   - [ ] FSRS scheduling accuracy
-- [ ] Test session composition with various review counts
-  - [ ] No due reviews
-  - [ ] Few due reviews (< max)
-  - [ ] Many due reviews (> max)
-  - [ ] All words are reviews
+- [ ] Test hybrid session flow with various review counts
+  - [ ] No due reviews (lesson runs normally)
+  - [ ] Few due reviews (warm-up and post-lesson phases activate)
+  - [ ] Many due reviews (truncated to maxReviewsPerLesson, balanced across phases)
+  - [ ] Test warm-up phase integration
+  - [ ] Test post-lesson review phase
+  - [ ] Test seamless transitions between phases
 - [ ] Test network failure scenarios
   - [ ] Card creation failures
   - [ ] Update failures

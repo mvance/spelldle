@@ -86,15 +86,22 @@ Based on attempt count within the current game flow:
 
 ## Session Composition Logic
 
+### Hybrid Session Model: Front-Load + Post-Lesson Reviews
+- **Strategy**: Two-phase approach for optimal learning flow
+- **Phase 1**: 2-3 warm-up reviews at lesson start (if due reviews available)
+- **Phase 2**: Complete lesson words as normal
+- **Phase 3**: Remaining due reviews as post-lesson micro-review (2-3 words max)
+
 ### Review Word Selection
 - **Strategy**: Strict due date adherence (`next_due <= current_time`)
 - **Ordering**: Most overdue words first, sorted by `next_due` ascending
-- **Integration**: Append review words to end of lesson word list
+- **Distribution**: Split selected reviews between warm-up and post-lesson phases
 
 ### User Preference System
 - **Setting**: `maxReviewsPerLesson` (default: 4)
 - **Storage**: `user_preferences` table
-- **Behavior**: Limit review words per session to user's preference
+- **Behavior**: Limit total review words per session to user's preference
+- **Distribution**: Split between warm-up (2-3) and post-lesson (remainder)
 - **Fallback**: Use default value for unauthenticated users
 
 ### Session Building Algorithm
@@ -103,8 +110,10 @@ Based on attempt count within the current game flow:
 2. Query due review words for user (WHERE next_due <= NOW())
 3. Sort reviews by next_due ASC (most overdue first)
 4. Take MIN(due_review_count, user.max_reviews_per_lesson) reviews
-5. Replace last N lesson words with selected reviews
-6. Final session: [lesson_words[0...(12-review_count)], review_words]
+5. Split reviews: warmUps = reviews.slice(0, 2), postReviews = reviews.slice(2)
+6. Build session: sessionQueue = [...warmUps, ...lessonWords]
+7. Set post-lesson queue: sessionEndQueue = [...postReviews]
+8. Trigger post-lesson reviews automatically after main session completion
 ```
 
 ## User Interface Integration
@@ -127,9 +136,10 @@ Based on attempt count within the current game flow:
 - **Data**: Store in `fsrs_cards` table with user_id, word, lesson_name
 
 ### Update Timing
-- **When**: After each word completion (immediate update after final attempt)
+- **When**: Batched updates at session intervals and session end
 - **Method**: Call FSRS `repeat()` function with performance grade
-- **Error Handling**: Continue game flow even if update fails
+- **Batching**: Collect updates during session, commit in batches for performance
+- **Error Handling**: Continue game flow even if update fails, queue for retry
 
 ### Review Word Loading
 - **Timing**: Lesson start time (when user clicks "Start Lesson")
@@ -146,18 +156,25 @@ Based on attempt count within the current game flow:
 
 ### Implementation Details
 ```javascript
-async function updateFSRSCard(word, grade) {
+// Batch update system
+const fsrsUpdateQueue = [];
+
+function queueFSRSUpdate(word, grade) {
+    fsrsUpdateQueue.push({ word, grade, timestamp: Date.now() });
+    
+    // Process batch if queue reaches threshold or after delay
+    if (fsrsUpdateQueue.length >= 5) {
+        processFSRSBatch();
+    }
+}
+
+async function processFSRSBatch() {
+    const batch = fsrsUpdateQueue.splice(0);
     try {
-        // Attempt FSRS update
-        await saveFSRSUpdate(word, grade);
+        await saveFSRSBatch(batch);
     } catch (error) {
-        // Log silently
-        console.error('FSRS update failed:', error);
-        
-        // Queue for retry
-        queueFailedUpdate(word, grade);
-        
-        // Continue game flow regardless
+        console.error('FSRS batch update failed:', error);
+        queueFailedBatch(batch);
     }
 }
 ```
