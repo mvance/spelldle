@@ -6,7 +6,7 @@
     <title>Spelldle</title>
     
     <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.skypack.dev https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://gist.githubusercontent.com https://*.supabase.co https://cdn.jsdelivr.net;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.skypack.dev https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://gist.githubusercontent.com https://*.supabase.co https://cdn.jsdelivr.net; worker-src blob:;">
     
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
@@ -3876,6 +3876,7 @@
                 }, 1500);
             } else {
                 // Direct correct guess on first try - show confetti, play "Correct!", and advance
+                console.log('First try correct - showing confetti');
                 createRealisticConfetti();
                 speakCorrect();
                 setTimeout(() => {
