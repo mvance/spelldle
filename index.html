@@ -1592,13 +1592,33 @@
                 }
                 
                 // Convert FSRS cards to word objects for session
-                const reviewWords = dueCards.map(card => ({
-                    word: card.word,
-                    sentence: `Review: ${card.word}`, // Placeholder sentence for reviews
-                    isReview: true,
-                    fsrsCard: card,
-                    lessonName: card.lesson_name
-                }));
+                const reviewWords = dueCards.map(card => {
+                    // Find the original sentence from lesson data
+                    let originalSentence = `Review: ${card.word}`; // Fallback
+                    
+                    // Look for the word in the lessons data to get original sentence
+                    const lessonEntry = lessonsData.find(row => 
+                        row.word === card.word && row.lesson_name === card.lesson_name
+                    );
+                    
+                    if (lessonEntry) {
+                        originalSentence = lessonEntry.sentence;
+                    } else {
+                        // Check fallback word list if not found in lessons
+                        const fallbackEntry = fallbackWordList.find(item => item.word === card.word);
+                        if (fallbackEntry) {
+                            originalSentence = fallbackEntry.sentence;
+                        }
+                    }
+                    
+                    return {
+                        word: card.word,
+                        sentence: originalSentence,
+                        isReview: true,
+                        fsrsCard: card,
+                        lessonName: card.lesson_name
+                    };
+                });
                 
                 console.log(`Selected ${reviewWords.length} review words:`, reviewWords.map(w => w.word));
                 logDatabaseOperation('select_reviews', true, { 
