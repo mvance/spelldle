@@ -2438,25 +2438,36 @@
                     return;
                 }
                 
-                // Update their due dates to be 1 hour ago
+                // Update their due dates to be 1 hour ago using individual updates to avoid RLS issues
                 const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
                 
-                const updates = cards.map(card => ({
-                    id: card.id,
-                    next_due: oneHourAgo,
-                    updated_at: new Date().toISOString()
-                }));
+                const updatePromises = cards.map(async (card) => {
+                    const { error } = await supabase
+                        .from('fsrs_cards')
+                        .update({
+                            next_due: oneHourAgo,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', card.id)
+                        .eq('user_id', authState.user.id); // Ensure RLS compliance
+                    
+                    if (error) {
+                        console.error(`Failed to update card ${card.word}:`, error);
+                        return { success: false, card, error };
+                    }
+                    
+                    return { success: true, card };
+                });
                 
-                const { error: updateError } = await supabase
-                    .from('fsrs_cards')
-                    .upsert(updates);
+                const results = await Promise.allSettled(updatePromises);
+                const successful = results
+                    .filter(result => result.status === 'fulfilled' && result.value.success)
+                    .map(result => result.value.card);
                 
-                if (updateError) throw updateError;
-                
-                console.log(`Successfully backdated ${cards.length} cards:`, cards.map(c => c.word));
+                console.log(`Successfully backdated ${successful.length} cards:`, successful.map(c => c.word));
                 console.log('These cards should now appear in review sessions');
                 
-                return cards;
+                return successful;
                 
             } catch (error) {
                 console.error('Failed to backdate cards:', error);
