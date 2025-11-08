@@ -60,6 +60,10 @@
 
 **Phase 2 Complete ✅** - FSRS card creation and batched updates implemented
 
+## Phase 3: Session Composition and Review Integration
+
+**Phase 3 Complete ✅** - Hybrid session system with warm-up and post-lesson reviews implemented
+
 ### 2.1 Implement Attempt Tracking and Grading
 - [x] Add attempt counter per word to gameState object
 - [x] Create calculateFSRSGrade(attemptCount) function:
@@ -104,38 +108,41 @@
 ## Phase 3: Session Composition and Review Integration
 
 ### 3.1 Implement User Preferences System
-- [ ] Create getUserPreferences() function with defaults (maxReviewsPerLesson: 5)
-  - [ ] Load from database for authenticated users
-  - [ ] Return default values if no preferences found
-  - [ ] Return null/empty for unauthenticated users (no FSRS data)
-- [ ] Implement updateUserPreferences() function
-  - [ ] Save to database for authenticated users only
-  - [ ] Validate input parameters
-- [ ] Add preferences loading during app initialization
-- [ ] Include error handling and validation
+- [x] Create getUserPreferences() function with defaults (maxReviewsPerLesson: 5)
+  - [x] Load from database for authenticated users
+  - [x] Return default values if no preferences found
+  - [x] Return null/empty for unauthenticated users (no FSRS data)
+- [x] Implement updateUserPreferences() function
+  - [x] Save to database for authenticated users only
+  - [x] Validate input parameters
+- [x] Add preferences loading during app initialization (integrated into session building)
+- [x] Include error handling and validation
 - [ ] Test preferences persistence across sessions
 
 ### 3.2 Implement Review Word Selection Logic
-- [ ] Create selectReviewWords(userId, maxReviews) function
-- [ ] Query due review words sorted by due date (most overdue first)
-- [ ] Respect user's maxReviewsPerLesson preference
-- [ ] Handle cases where no reviews are due
-- [ ] Include error handling for database queries
-- [ ] Add logging for review selection decisions
+- [x] Create selectReviewWords(userId, maxReviews) function
+- [x] Query due review words sorted by due date (most overdue first)
+- [x] Respect user's maxReviewsPerLesson preference
+- [x] Handle cases where no reviews are due
+- [x] Include error handling for database queries
+- [x] Add logging for review selection decisions
 - [ ] Test with various due review scenarios
 - [ ] Test with different user preference values
 
 ### 3.3 Implement Session Building Algorithm
-- [ ] Modify startSelectedLesson function to implement front-load + post-lesson model
-- [ ] Load selected lesson words as before
-- [ ] Query and select due review words
-- [ ] Split selected reviews into warmUp and postLesson queues
-- [ ] Build sessionQueue with warm-up reviews at start
-- [ ] Set sessionEndQueue with remaining reviews
-- [ ] Implement automatic post-lesson review trigger
-- [ ] Work with both CSV lessons and fallback word list
-- [ ] Preserve existing lesson flow and UI
-- [ ] Add session composition logging
+- [x] Modify startSelectedLesson function to implement front-load + post-lesson model
+- [x] Load selected lesson words as before
+- [x] Query and select due review words
+- [x] Split selected reviews into warmUp and postLesson queues
+- [x] Build sessionQueue with warm-up reviews at start
+- [x] Set sessionEndQueue with remaining reviews
+- [x] Implement automatic post-lesson review trigger
+- [x] Work with both CSV lessons and fallback word list
+- [x] Preserve existing lesson flow and UI
+- [x] Add session composition logging
+- [x] Update game state to handle hybrid sessions
+- [x] Update progress counter for different session phases
+- [x] Update lesson completion stats to show session composition
 - [ ] Test hybrid session creation with two-phase model
 - [ ] Test edge cases (no reviews, few reviews, many reviews)
 

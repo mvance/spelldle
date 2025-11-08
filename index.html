@@ -1565,6 +1565,60 @@
         }
         
         /**
+         * Select review words for inclusion in session based on user preferences
+         * @param {string} userId - The user ID (optional, uses current user if not provided)
+         * @param {number} maxReviews - Maximum number of reviews to select (optional, uses user preference)
+         * @returns {Array} - Array of selected review words or empty array
+         */
+        async function selectReviewWords(userId = null, maxReviews = null) {
+            if (!isAuthenticated()) {
+                console.log('User not authenticated, no review words available');
+                return [];
+            }
+            
+            try {
+                // Get user preferences to determine max reviews
+                const preferences = await getUserPreferences(userId);
+                const reviewLimit = maxReviews || (preferences ? preferences.max_reviews_per_lesson : 5);
+                
+                console.log(`Selecting review words with limit: ${reviewLimit}`);
+                
+                // Get due review cards
+                const dueCards = await getDueReviewCards(userId, reviewLimit);
+                
+                if (dueCards.length === 0) {
+                    console.log('No due review cards found');
+                    return [];
+                }
+                
+                // Convert FSRS cards to word objects for session
+                const reviewWords = dueCards.map(card => ({
+                    word: card.word,
+                    sentence: `Review: ${card.word}`, // Placeholder sentence for reviews
+                    isReview: true,
+                    fsrsCard: card,
+                    lessonName: card.lesson_name
+                }));
+                
+                console.log(`Selected ${reviewWords.length} review words:`, reviewWords.map(w => w.word));
+                logDatabaseOperation('select_reviews', true, { 
+                    count: reviewWords.length, 
+                    limit: reviewLimit,
+                    words: reviewWords.map(w => w.word)
+                });
+                
+                return reviewWords;
+                
+            } catch (error) {
+                console.error('Failed to select review words:', error);
+                logDatabaseOperation('select_reviews', false, error);
+                
+                // Handle error gracefully - return empty array to continue with lesson-only mode
+                return [];
+            }
+        }
+        
+        /**
          * Get FSRS card by word and lesson
          * @param {string} word - The word to find
          * @param {string} lessonName - The lesson name (optional)
@@ -1608,6 +1662,151 @@
                 logDatabaseOperation('get_card_by_word', false, error);
                 return null;
             }
+        }
+        
+        // User Preferences System
+        
+        /**
+         * Get user preferences with defaults
+         * @param {string} userId - The user ID (optional, uses current user if not provided)
+         * @returns {Object} - User preferences object with defaults
+         */
+        async function getUserPreferences(userId = null) {
+            if (!isAuthenticated()) {
+                console.log('User not authenticated, returning null preferences');
+                return null;
+            }
+            
+            const targetUserId = userId || authState.user.id;
+            
+            try {
+                console.log(`Getting user preferences for user: ${targetUserId}`);
+                
+                // Use retry logic for database query
+                const result = await retryOperation(async () => {
+                    const { data, error } = await supabase
+                        .from('user_preferences')
+                        .select('*')
+                        .eq('user_id', targetUserId)
+                        .single();
+                    
+                    if (error) {
+                        if (error.code === 'PGRST116') {
+                            // No preferences found - return defaults
+                            return null;
+                        }
+                        throw error;
+                    }
+                    
+                    return data;
+                }, 3, 1000);
+                
+                // Return preferences or defaults
+                const preferences = result || {
+                    max_reviews_per_lesson: 5,
+                    desired_retention: 0.90
+                };
+                
+                console.log('User preferences loaded:', preferences);
+                logDatabaseOperation('get_preferences', true, { userId: targetUserId });
+                return preferences;
+                
+            } catch (error) {
+                console.error('Failed to get user preferences:', error);
+                logDatabaseOperation('get_preferences', false, error);
+                
+                // Handle storage error with user feedback
+                handleStorageError(error, 'load user preferences');
+                
+                // Return defaults on error
+                return {
+                    max_reviews_per_lesson: 5,
+                    desired_retention: 0.90
+                };
+            }
+        }
+        
+        /**
+         * Update user preferences
+         * @param {Object} preferences - Preferences object to save
+         * @returns {Object|null} - Updated preferences object or null on failure
+         */
+        async function updateUserPreferences(preferences) {
+            if (!isAuthenticated()) {
+                console.log('User not authenticated, cannot update preferences');
+                return null;
+            }
+            
+            try {
+                console.log('Updating user preferences:', preferences);
+                
+                // Validate preferences
+                if (!validateUserPreferences(preferences)) {
+                    throw new Error('Invalid preferences data');
+                }
+                
+                // Use retry logic for database operation
+                const result = await retryOperation(async () => {
+                    const { data, error } = await supabase
+                        .from('user_preferences')
+                        .upsert({
+                            user_id: authState.user.id,
+                            max_reviews_per_lesson: preferences.max_reviews_per_lesson,
+                            desired_retention: preferences.desired_retention,
+                            updated_at: new Date().toISOString()
+                        })
+                        .select()
+                        .single();
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    return data;
+                }, 3, 1000);
+                
+                console.log('User preferences updated successfully:', result);
+                logDatabaseOperation('update_preferences', true, { preferences });
+                return result;
+                
+            } catch (error) {
+                console.error('Failed to update user preferences:', error);
+                logDatabaseOperation('update_preferences', false, error);
+                
+                // Handle storage error with user feedback
+                handleStorageError(error, 'save user preferences');
+                return null;
+            }
+        }
+        
+        /**
+         * Validate user preferences data
+         * @param {Object} preferences - Preferences object to validate
+         * @returns {boolean} - True if valid, false otherwise
+         */
+        function validateUserPreferences(preferences) {
+            if (!preferences || typeof preferences !== 'object') {
+                console.error('Preferences must be an object');
+                return false;
+            }
+            
+            // Validate max_reviews_per_lesson
+            if (typeof preferences.max_reviews_per_lesson !== 'number' || 
+                preferences.max_reviews_per_lesson < 0 || 
+                preferences.max_reviews_per_lesson > 20) {
+                console.error('max_reviews_per_lesson must be a number between 0 and 20');
+                return false;
+            }
+            
+            // Validate desired_retention
+            if (typeof preferences.desired_retention !== 'number' || 
+                preferences.desired_retention < 0.5 || 
+                preferences.desired_retention > 1.0) {
+                console.error('desired_retention must be a number between 0.5 and 1.0');
+                return false;
+            }
+            
+            return true;
         }
         
         // FSRS Update Queue and Batching System
@@ -2615,7 +2814,11 @@
             lessonStartTime: null,
             hadIncorrectGuess: false, // Track if user made incorrect guess in initial phase
             currentWordAttempts: 0, // Track attempts for current word
-            currentWordFSRSCard: null // Store FSRS card for current word
+            currentWordFSRSCard: null, // Store FSRS card for current word
+            sessionEndQueue: [], // Post-lesson review words
+            warmUpCount: 0, // Number of warm-up review words
+            lessonWordCount: 0, // Number of lesson words
+            inPostLessonReviews: false // Track if we're in post-lesson review phase
         };
 
         // Text-to-speech variables
@@ -2793,40 +2996,115 @@
             });
         }
 
-        // Start selected lesson
-        function startSelectedLesson() {
+        // Start selected lesson with hybrid session building
+        async function startSelectedLesson() {
             const dropdown = document.getElementById('lessonDropdown');
             const selectedLesson = dropdown.value;
             
             if (!selectedLesson) return;
             
+            try {
+                // Build session with review integration
+                const sessionData = await buildHybridSession(selectedLesson);
+                
+                // Set up game state with hybrid session
+                gameState.currentLesson = sessionData.lessonName;
+                gameState.currentLessonWords = sessionData.sessionQueue;
+                gameState.totalWords = sessionData.sessionQueue.length;
+                gameState.currentWordIndex = 0;
+                gameState.correctGuesses = 0;
+                gameState.totalGuesses = 0;
+                gameState.lessonStartTime = Date.now();
+                gameState.sessionEndQueue = sessionData.sessionEndQueue;
+                gameState.warmUpCount = sessionData.warmUpCount;
+                gameState.lessonWordCount = sessionData.lessonWordCount;
+                
+                console.log(`Starting hybrid session: ${sessionData.lessonName}`);
+                console.log(`Session composition: ${sessionData.warmUpCount} warm-up + ${sessionData.lessonWordCount} lesson + ${sessionData.sessionEndQueue.length} post-lesson`);
+                
+                // Hide welcome screen and start game
+                document.getElementById('welcomeScreen').style.display = 'none';
+                initializeGame();
+                
+            } catch (error) {
+                console.error('Failed to start lesson:', error);
+                showErrorToast('Failed to start lesson. Please try again.', 'error', 5000);
+            }
+        }
+        
+        /**
+         * Build hybrid session with warm-up reviews, lesson words, and post-lesson reviews
+         * @param {string} selectedLesson - The selected lesson name or 'fallback'
+         * @returns {Object} - Session data object with queues and metadata
+         */
+        async function buildHybridSession(selectedLesson) {
+            console.log(`Building hybrid session for: ${selectedLesson}`);
+            
+            // Step 1: Load lesson words
+            let lessonWords = [];
+            let lessonName = selectedLesson;
+            
             if (selectedLesson === 'fallback') {
-                // Use fallback word list
-                gameState.currentLesson = null;
-                gameState.currentLessonWords = [];
-                gameState.totalWords = fallbackWordList.length;
-                gameState.currentWordIndex = 0;
-                gameState.correctGuesses = 0;
-                gameState.totalGuesses = 0;
-                gameState.lessonStartTime = Date.now();
-                
-                console.log('Starting fallback game with original word list');
+                lessonWords = fallbackWordList.map(item => ({
+                    word: item.word,
+                    sentence: item.sentence,
+                    isReview: false,
+                    lessonName: 'Fallback Word List'
+                }));
+                lessonName = 'Fallback Word List';
             } else {
-                // Filter words for selected lesson
-                gameState.currentLesson = selectedLesson;
-                gameState.currentLessonWords = lessonsData.filter(row => row.lesson_name === selectedLesson);
-                gameState.totalWords = gameState.currentLessonWords.length;
-                gameState.currentWordIndex = 0;
-                gameState.correctGuesses = 0;
-                gameState.totalGuesses = 0;
-                gameState.lessonStartTime = Date.now();
-                
-                console.log(`Starting lesson: ${selectedLesson} with ${gameState.totalWords} words`);
+                const lessonData = lessonsData.filter(row => row.lesson_name === selectedLesson);
+                lessonWords = lessonData.map(row => ({
+                    word: row.word,
+                    sentence: row.sentence,
+                    isReview: false,
+                    lessonName: selectedLesson
+                }));
             }
             
-            // Hide welcome screen and start game
-            document.getElementById('welcomeScreen').style.display = 'none';
-            initializeGame();
+            console.log(`Loaded ${lessonWords.length} lesson words`);
+            
+            // Step 2: Select review words (only for authenticated users)
+            let reviewWords = [];
+            if (isAuthenticated()) {
+                try {
+                    reviewWords = await selectReviewWords();
+                    console.log(`Selected ${reviewWords.length} review words`);
+                } catch (error) {
+                    console.warn('Failed to load review words, continuing with lesson-only mode:', error);
+                    reviewWords = [];
+                }
+            } else {
+                console.log('User not authenticated, skipping review word selection');
+            }
+            
+            // Step 3: Split reviews between warm-up and post-lesson
+            const warmUpReviews = reviewWords.slice(0, Math.min(3, reviewWords.length));
+            const postLessonReviews = reviewWords.slice(warmUpReviews.length);
+            
+            console.log(`Review distribution: ${warmUpReviews.length} warm-up, ${postLessonReviews.length} post-lesson`);
+            
+            // Step 4: Build session queue (warm-up + lesson words)
+            const sessionQueue = [...warmUpReviews, ...lessonWords];
+            
+            // Step 5: Return session data
+            const sessionData = {
+                lessonName: lessonName,
+                sessionQueue: sessionQueue,
+                sessionEndQueue: postLessonReviews,
+                warmUpCount: warmUpReviews.length,
+                lessonWordCount: lessonWords.length,
+                totalReviews: reviewWords.length
+            };
+            
+            console.log('Hybrid session built:', {
+                totalWords: sessionData.sessionQueue.length,
+                warmUp: sessionData.warmUpCount,
+                lesson: sessionData.lessonWordCount,
+                postLesson: sessionData.sessionEndQueue.length
+            });
+            
+            return sessionData;
         }
 
         // Handle lesson completion
@@ -2849,9 +3127,13 @@
             const stats = document.getElementById('lessonStats');
             const dropdown = document.getElementById('nextActionDropdown');
             
+            // Calculate session composition for display
+            const totalSessionWords = gameState.warmUpCount + gameState.lessonWordCount + gameState.sessionEndQueue.length;
+            const reviewCount = gameState.warmUpCount + gameState.sessionEndQueue.length;
+            
             stats.innerHTML = `
                 <div><strong>Lesson:</strong> ${gameState.currentLesson}</div>
-                <div><strong>Words:</strong> ${gameState.totalWords}</div>
+                <div><strong>Words:</strong> ${totalSessionWords} (${gameState.lessonWordCount} lesson${reviewCount > 0 ? `, ${reviewCount} review` : ''})</div>
                 <div><strong>Accuracy:</strong> ${accuracy}% (${gameState.correctGuesses}/${gameState.totalGuesses})</div>
                 <div><strong>Time:</strong> ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}</div>
             `;
@@ -2902,6 +3184,10 @@
             gameState.gameStarted = false;
             gameState.currentWordIndex = 0;
             gameState.hadIncorrectGuess = false;
+            gameState.sessionEndQueue = [];
+            gameState.warmUpCount = 0;
+            gameState.lessonWordCount = 0;
+            gameState.inPostLessonReviews = false;
             
             // Hide all game elements
             hideInitialGuessInput();
@@ -4540,11 +4826,18 @@
         // Update progress counter display
         function updateProgressCounter() {
             const progressCounter = document.getElementById('progressCounter');
-            if (gameState.currentLesson) {
+            
+            if (gameState.inPostLessonReviews) {
+                // Post-lesson review phase
+                progressCounter.textContent = `${gameState.currentLesson} - Review ${gameState.currentWordIndex + 1} of ${gameState.totalWords}`;
+            } else if (gameState.currentLesson) {
+                // Main session (warm-up + lesson words)
                 progressCounter.textContent = `${gameState.currentLesson} - Word ${gameState.currentWordIndex + 1} of ${gameState.totalWords}`;
             } else {
+                // Fallback mode
                 progressCounter.textContent = `Word ${gameState.currentWordIndex + 1} of ${gameState.totalWords}`;
             }
+            
             progressCounter.style.display = 'block';
         }
 
@@ -4590,7 +4883,12 @@
         // Updated game completion handler
         function handleGameCompletion() {
             if (gameState.currentLesson) {
-                handleLessonCompletion();
+                // Check if we have post-lesson reviews to do
+                if (!gameState.inPostLessonReviews && gameState.sessionEndQueue.length > 0) {
+                    startPostLessonReviews();
+                } else {
+                    handleLessonCompletion();
+                }
             } else {
                 // Original game complete behavior
                 console.log('Game completed!');
@@ -4599,6 +4897,60 @@
                 const gameCompleteContainer = document.getElementById('gameCompleteContainer');
                 gameCompleteContainer.style.display = 'flex';
             }
+        }
+        
+        /**
+         * Start post-lesson review phase
+         */
+        function startPostLessonReviews() {
+            console.log(`Starting post-lesson reviews: ${gameState.sessionEndQueue.length} words`);
+            
+            // Mark that we're in post-lesson review phase
+            gameState.inPostLessonReviews = true;
+            
+            // Set up the post-lesson review words as the current lesson words
+            gameState.currentLessonWords = gameState.sessionEndQueue;
+            gameState.totalWords = gameState.sessionEndQueue.length;
+            gameState.currentWordIndex = 0;
+            
+            // Reset for post-lesson phase
+            gameState.currentPhase = 'initial';
+            gameState.hadIncorrectGuess = false;
+            
+            // Get first post-lesson review word
+            const wordData = getCurrentWordData();
+            if (wordData) {
+                gameState.currentWord = wordData.word;
+                gameState.currentSentence = wordData.sentence;
+                
+                // Update progress counter for post-lesson reviews
+                updateProgressCounterForPostLesson();
+                
+                // Initialize attempt tracking for first post-lesson word
+                initializeWordAttemptTracking(gameState.currentWord, gameState.currentLesson).then(() => {
+                    // Show initial guess input for post-lesson reviews
+                    showInitialGuessInput();
+                    
+                    // Auto-play the first post-lesson review word
+                    setTimeout(() => {
+                        speakCurrentWord();
+                    }, 500);
+                });
+                
+                console.log(`Started post-lesson reviews with word: ${gameState.currentWord}`);
+            } else {
+                console.error('Failed to get post-lesson review word data');
+                handleLessonCompletion();
+            }
+        }
+        
+        /**
+         * Update progress counter for post-lesson review phase
+         */
+        function updateProgressCounterForPostLesson() {
+            const progressCounter = document.getElementById('progressCounter');
+            progressCounter.textContent = `${gameState.currentLesson} - Review ${gameState.currentWordIndex + 1} of ${gameState.totalWords}`;
+            progressCounter.style.display = 'block';
         }
 
         // Play again functionality
