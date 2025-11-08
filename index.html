@@ -777,7 +777,8 @@
         .error-toast {
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             background-color: #d73a49;
             color: white;
             padding: 16px 20px;
@@ -788,7 +789,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             max-width: 400px;
             word-wrap: break-word;
-            animation: slideInRight 0.3s ease-out;
+            animation: slideInTop 0.3s ease-out;
         }
 
         .error-toast.success {
@@ -837,24 +838,24 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        @keyframes slideInRight {
+        @keyframes slideInTop {
             from {
-                transform: translateX(100%);
+                transform: translateX(-50%) translateY(-100%);
                 opacity: 0;
             }
             to {
-                transform: translateX(0);
+                transform: translateX(-50%) translateY(0);
                 opacity: 1;
             }
         }
 
-        @keyframes slideOutRight {
+        @keyframes slideOutTop {
             from {
-                transform: translateX(0);
+                transform: translateX(-50%) translateY(0);
                 opacity: 1;
             }
             to {
-                transform: translateX(100%);
+                transform: translateX(-50%) translateY(-100%);
                 opacity: 0;
             }
         }
@@ -886,8 +887,9 @@
 
             .error-toast {
                 top: 10px;
-                right: 10px;
                 left: 10px;
+                right: 10px;
+                transform: translateX(0);
                 max-width: none;
             }
         }
@@ -3608,7 +3610,7 @@
         }
 
         function dismissToast(toast) {
-            toast.style.animation = 'slideOutRight 0.3s ease-in';
+            toast.style.animation = 'slideOutTop 0.3s ease-in';
             setTimeout(() => {
                 if (toast.parentNode) {
                     toast.remove();
