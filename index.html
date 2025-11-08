@@ -2409,6 +2409,61 @@
             };
         }
         
+        /**
+         * TESTING FUNCTION: Backdate some FSRS cards to make them due now
+         * This is for testing the review system - removes when testing is complete
+         */
+        async function backdateCardsForTesting(count = 5) {
+            if (!isAuthenticated()) {
+                console.log('Must be authenticated to backdate cards');
+                return;
+            }
+            
+            try {
+                console.log(`Backdating ${count} cards for testing...`);
+                
+                // Get some cards that are due in the future
+                const { data: cards, error } = await supabase
+                    .from('fsrs_cards')
+                    .select('id, word, next_due')
+                    .eq('user_id', authState.user.id)
+                    .gt('next_due', new Date().toISOString())
+                    .order('next_due', { ascending: true })
+                    .limit(count);
+                
+                if (error) throw error;
+                
+                if (cards.length === 0) {
+                    console.log('No future cards found to backdate');
+                    return;
+                }
+                
+                // Update their due dates to be 1 hour ago
+                const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+                
+                const updates = cards.map(card => ({
+                    id: card.id,
+                    next_due: oneHourAgo,
+                    updated_at: new Date().toISOString()
+                }));
+                
+                const { error: updateError } = await supabase
+                    .from('fsrs_cards')
+                    .upsert(updates);
+                
+                if (updateError) throw updateError;
+                
+                console.log(`Successfully backdated ${cards.length} cards:`, cards.map(c => c.word));
+                console.log('These cards should now appear in review sessions');
+                
+                return cards;
+                
+            } catch (error) {
+                console.error('Failed to backdate cards:', error);
+                return null;
+            }
+        }
+        
         // FSRS Attempt Tracking and Grading
         
         /**
