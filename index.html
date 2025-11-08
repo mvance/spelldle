@@ -1425,8 +1425,8 @@
          * @returns {Object|null} - Updated card object or null on failure
          */
         async function updateFSRSCard(cardId, grade) {
-            if (!fsrsInitialized || !fsrsLibrary) {
-                console.warn('FSRS not initialized, cannot update card');
+            if (!fsrsInitialized || !fsrsLibrary || window.fsrsDisabled) {
+                console.warn('FSRS not available, cannot update card');
                 return null;
             }
             
@@ -1506,14 +1506,16 @@
                 
                 console.log('FSRS card updated successfully:', result);
                 logDatabaseOperation('update_card', true, { cardId, grade });
+                trackFSRSOperation(true, 'update_card');
                 return result;
                 
             } catch (error) {
                 console.error('Failed to update FSRS card:', error);
                 logDatabaseOperation('update_card', false, error);
+                trackFSRSOperation(false, 'update_card', error);
                 
                 // Handle storage error with user feedback
-                handleStorageError(error, 'update FSRS card');
+                handleStorageError(error, 'update FSRS card', () => updateFSRSCard(cardId, grade));
                 return null;
             }
         }
@@ -1922,17 +1924,212 @@
             console.log(`FSRS batch processing complete: ${successCount}/${results.length} successful`);
         }
         
+        // Retry Queue System
+        let fsrsRetryQueue = [];
+        let retryQueueTimer = null;
+        const RETRY_QUEUE_KEY = 'spelldle_fsrs_retry_queue';
+        const MAX_RETRY_ATTEMPTS = 3;
+        const RETRY_BASE_DELAY = 2000; // 2 seconds
+        const RETRY_QUEUE_PROCESS_INTERVAL = 30000; // 30 seconds
+        
         /**
-         * Queue failed FSRS updates for retry
+         * Queue failed FSRS updates for retry with exponential backoff
          * @param {Array} failedUpdates - Array of failed update objects
          */
         function queueFailedFSRSUpdates(failedUpdates) {
-            // For now, just log failed updates
-            // In a full implementation, this would add to a retry queue with exponential backoff
             failedUpdates.forEach(update => {
-                console.error('Failed FSRS update queued for retry:', update);
-                // Could implement localStorage-based retry queue here
+                const retryItem = {
+                    ...update,
+                    retryCount: (update.retryCount || 0) + 1,
+                    nextRetryTime: Date.now() + (RETRY_BASE_DELAY * Math.pow(2, update.retryCount || 0)),
+                    lastError: update.error || 'Unknown error'
+                };
+                
+                if (retryItem.retryCount <= MAX_RETRY_ATTEMPTS) {
+                    fsrsRetryQueue.push(retryItem);
+                    console.log(`Queued FSRS update for retry (attempt ${retryItem.retryCount}/${MAX_RETRY_ATTEMPTS}):`, retryItem.word);
+                } else {
+                    console.error(`FSRS update failed permanently after ${MAX_RETRY_ATTEMPTS} attempts:`, retryItem.word);
+                    logPermanentFailure(retryItem);
+                }
             });
+            
+            // Persist retry queue to localStorage
+            persistRetryQueue();
+            
+            // Start retry processing if not already running
+            if (!retryQueueTimer) {
+                startRetryQueueProcessing();
+            }
+        }
+        
+        /**
+         * Persist retry queue to localStorage for recovery across page reloads
+         */
+        function persistRetryQueue() {
+            try {
+                localStorage.setItem(RETRY_QUEUE_KEY, JSON.stringify(fsrsRetryQueue));
+            } catch (error) {
+                console.error('Failed to persist retry queue to localStorage:', error);
+            }
+        }
+        
+        /**
+         * Load retry queue from localStorage on page load
+         */
+        function loadRetryQueue() {
+            try {
+                const stored = localStorage.getItem(RETRY_QUEUE_KEY);
+                if (stored) {
+                    fsrsRetryQueue = JSON.parse(stored);
+                    console.log(`Loaded ${fsrsRetryQueue.length} items from retry queue`);
+                    
+                    // Start processing if queue has items
+                    if (fsrsRetryQueue.length > 0) {
+                        startRetryQueueProcessing();
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load retry queue from localStorage:', error);
+                fsrsRetryQueue = [];
+            }
+        }
+        
+        /**
+         * Start background retry queue processing
+         */
+        function startRetryQueueProcessing() {
+            if (retryQueueTimer) {
+                return; // Already running
+            }
+            
+            console.log('Starting retry queue processing');
+            retryQueueTimer = setInterval(() => {
+                processRetryQueue();
+            }, RETRY_QUEUE_PROCESS_INTERVAL);
+            
+            // Also process immediately
+            setTimeout(() => processRetryQueue(), 1000);
+        }
+        
+        /**
+         * Stop retry queue processing
+         */
+        function stopRetryQueueProcessing() {
+            if (retryQueueTimer) {
+                clearInterval(retryQueueTimer);
+                retryQueueTimer = null;
+                console.log('Stopped retry queue processing');
+            }
+        }
+        
+        /**
+         * Process retry queue in background
+         */
+        async function processRetryQueue() {
+            if (fsrsRetryQueue.length === 0) {
+                stopRetryQueueProcessing();
+                return;
+            }
+            
+            const now = Date.now();
+            const readyItems = fsrsRetryQueue.filter(item => item.nextRetryTime <= now);
+            
+            if (readyItems.length === 0) {
+                console.log(`Retry queue has ${fsrsRetryQueue.length} items, none ready for retry yet`);
+                return;
+            }
+            
+            console.log(`Processing ${readyItems.length} retry queue items`);
+            
+            const results = await Promise.allSettled(
+                readyItems.map(async (item) => {
+                    try {
+                        const result = await updateFSRSCard(item.cardId, item.grade);
+                        if (result) {
+                            console.log(`Retry successful for word: ${item.word}`);
+                            // Remove from retry queue
+                            fsrsRetryQueue = fsrsRetryQueue.filter(queueItem => queueItem !== item);
+                            return { success: true, item };
+                        } else {
+                            throw new Error('Update returned null');
+                        }
+                    } catch (error) {
+                        console.error(`Retry failed for word: ${item.word}:`, error);
+                        return { success: false, item, error };
+                    }
+                })
+            );
+            
+            // Handle failed retries
+            const failedRetries = results
+                .filter(result => result.status === 'rejected' || !result.value.success)
+                .map(result => ({
+                    ...result.value?.item,
+                    error: result.value?.error || result.reason
+                }));
+            
+            if (failedRetries.length > 0) {
+                // Remove failed items from current queue and re-queue with incremented retry count
+                failedRetries.forEach(item => {
+                    fsrsRetryQueue = fsrsRetryQueue.filter(queueItem => queueItem !== item);
+                });
+                queueFailedFSRSUpdates(failedRetries);
+            }
+            
+            // Persist updated queue
+            persistRetryQueue();
+            
+            const successCount = results.length - failedRetries.length;
+            console.log(`Retry queue processing complete: ${successCount}/${results.length} successful`);
+        }
+        
+        /**
+         * Log permanent failures for monitoring
+         * @param {Object} item - The permanently failed retry item
+         */
+        function logPermanentFailure(item) {
+            const failure = {
+                word: item.word,
+                grade: item.grade,
+                cardId: item.cardId,
+                attempts: item.retryCount,
+                lastError: item.lastError,
+                timestamp: new Date().toISOString()
+            };
+            
+            console.error('Permanent FSRS failure:', failure);
+            
+            // Store permanent failures for potential manual recovery
+            try {
+                const failures = JSON.parse(localStorage.getItem('spelldle_permanent_failures') || '[]');
+                failures.push(failure);
+                // Keep only last 50 failures to prevent storage bloat
+                if (failures.length > 50) {
+                    failures.splice(0, failures.length - 50);
+                }
+                localStorage.setItem('spelldle_permanent_failures', JSON.stringify(failures));
+            } catch (error) {
+                console.error('Failed to store permanent failure:', error);
+            }
+        }
+        
+        /**
+         * Get retry queue status for monitoring
+         * @returns {Object} - Status object with queue information
+         */
+        function getRetryQueueStatus() {
+            const now = Date.now();
+            const readyCount = fsrsRetryQueue.filter(item => item.nextRetryTime <= now).length;
+            const pendingCount = fsrsRetryQueue.length - readyCount;
+            
+            return {
+                totalItems: fsrsRetryQueue.length,
+                readyForRetry: readyCount,
+                pendingRetry: pendingCount,
+                isProcessing: !!retryQueueTimer,
+                nextProcessTime: retryQueueTimer ? Date.now() + RETRY_QUEUE_PROCESS_INTERVAL : null
+            };
         }
         
         /**
@@ -1943,6 +2140,267 @@
                 console.log('Flushing remaining FSRS updates');
                 await processFSRSBatch();
             }
+        }
+        
+        // FSRS System Health Monitoring
+        
+        let fsrsHealthStatus = {
+            isHealthy: true,
+            lastHealthCheck: null,
+            consecutiveFailures: 0,
+            totalOperations: 0,
+            successfulOperations: 0,
+            lastError: null,
+            degradationLevel: 'none' // 'none', 'warning', 'degraded', 'failed'
+        };
+        
+        const FSRS_HEALTH_CHECK_INTERVAL = 60000; // 1 minute
+        const FSRS_FAILURE_THRESHOLD = 3; // Consecutive failures before degradation
+        const FSRS_SUCCESS_RATE_THRESHOLD = 0.7; // 70% success rate required
+        
+        /**
+         * Perform FSRS system health check
+         * @returns {Object} - Health status object
+         */
+        async function performFSRSHealthCheck() {
+            console.log('Performing FSRS system health check');
+            
+            try {
+                // Test basic FSRS library functionality
+                if (!fsrsInitialized || !fsrsLibrary) {
+                    throw new Error('FSRS library not initialized');
+                }
+                
+                // Test basic FSRS operations
+                const { createEmptyCard, Rating } = window.tsFsrs;
+                const testCard = createEmptyCard();
+                const testResult = fsrsLibrary.repeat(testCard, new Date());
+                
+                if (!testResult || !testResult[Rating.Good]) {
+                    throw new Error('FSRS library operations failed');
+                }
+                
+                // Test database connectivity (if authenticated)
+                if (isAuthenticated()) {
+                    await testDatabaseConnectivity();
+                }
+                
+                // Health check passed
+                fsrsHealthStatus.isHealthy = true;
+                fsrsHealthStatus.lastHealthCheck = new Date().toISOString();
+                fsrsHealthStatus.consecutiveFailures = 0;
+                fsrsHealthStatus.lastError = null;
+                
+                // Recover from degraded state if health is restored
+                if (fsrsHealthStatus.degradationLevel !== 'none') {
+                    recoverFromDegradation();
+                }
+                
+                console.log('FSRS health check passed');
+                return { healthy: true, status: fsrsHealthStatus };
+                
+            } catch (error) {
+                console.error('FSRS health check failed:', error);
+                
+                fsrsHealthStatus.isHealthy = false;
+                fsrsHealthStatus.lastHealthCheck = new Date().toISOString();
+                fsrsHealthStatus.consecutiveFailures++;
+                fsrsHealthStatus.lastError = error.message;
+                
+                // Determine degradation level
+                updateDegradationLevel();
+                
+                return { healthy: false, status: fsrsHealthStatus, error };
+            }
+        }
+        
+        /**
+         * Test database connectivity for FSRS operations
+         */
+        async function testDatabaseConnectivity() {
+            if (!supabase || !isAuthenticated()) {
+                throw new Error('Database not available or user not authenticated');
+            }
+            
+            // Simple query to test connectivity
+            const { data, error } = await supabase
+                .from('fsrs_cards')
+                .select('id')
+                .eq('user_id', authState.user.id)
+                .limit(1);
+            
+            if (error) {
+                throw new Error(`Database connectivity test failed: ${error.message}`);
+            }
+            
+            return true;
+        }
+        
+        /**
+         * Update FSRS degradation level based on health status
+         */
+        function updateDegradationLevel() {
+            const failures = fsrsHealthStatus.consecutiveFailures;
+            const successRate = fsrsHealthStatus.totalOperations > 0 ? 
+                fsrsHealthStatus.successfulOperations / fsrsHealthStatus.totalOperations : 1;
+            
+            let newLevel = 'none';
+            
+            if (failures >= FSRS_FAILURE_THRESHOLD || successRate < FSRS_SUCCESS_RATE_THRESHOLD) {
+                if (failures >= FSRS_FAILURE_THRESHOLD * 2) {
+                    newLevel = 'failed';
+                } else if (successRate < 0.5) {
+                    newLevel = 'degraded';
+                } else {
+                    newLevel = 'warning';
+                }
+            }
+            
+            if (newLevel !== fsrsHealthStatus.degradationLevel) {
+                const previousLevel = fsrsHealthStatus.degradationLevel;
+                fsrsHealthStatus.degradationLevel = newLevel;
+                
+                console.log(`FSRS degradation level changed: ${previousLevel} -> ${newLevel}`);
+                handleDegradationLevelChange(newLevel, previousLevel);
+            }
+        }
+        
+        /**
+         * Handle changes in FSRS degradation level
+         * @param {string} newLevel - New degradation level
+         * @param {string} previousLevel - Previous degradation level
+         */
+        function handleDegradationLevelChange(newLevel, previousLevel) {
+            switch (newLevel) {
+                case 'warning':
+                    if (previousLevel === 'none') {
+                        showErrorToast(
+                            'Spaced repetition system experiencing issues. Monitoring...',
+                            'warning',
+                            5000
+                        );
+                    }
+                    break;
+                    
+                case 'degraded':
+                    handleFSRSSystemDegradation();
+                    break;
+                    
+                case 'failed':
+                    enableLessonOnlyMode();
+                    showPersistentError(
+                        'Spaced Repetition Unavailable',
+                        'The spaced repetition system is currently unavailable. You can continue with lessons, but progress will not be saved.',
+                        () => performFSRSHealthCheck()
+                    );
+                    break;
+                    
+                case 'none':
+                    // Recovery handled in recoverFromDegradation()
+                    break;
+            }
+        }
+        
+        /**
+         * Recover from FSRS degradation when health is restored
+         */
+        function recoverFromDegradation() {
+            console.log('Recovering from FSRS degradation');
+            
+            // Clear degradation flags
+            window.fsrsDisabled = false;
+            window.fsrsDegraded = false;
+            
+            // Remove UI indicators
+            const lessonOnlyIndicator = document.getElementById('lessonOnlyIndicator');
+            if (lessonOnlyIndicator) lessonOnlyIndicator.remove();
+            
+            // Restart retry queue processing if needed
+            if (fsrsRetryQueue.length > 0) {
+                startRetryQueueProcessing();
+            }
+            
+            // Show recovery notification
+            showErrorToast(
+                'Spaced repetition system restored. Progress saving resumed.',
+                'success',
+                4000
+            );
+            
+            fsrsHealthStatus.degradationLevel = 'none';
+        }
+        
+        /**
+         * Track FSRS operation result for health monitoring
+         * @param {boolean} success - Whether the operation succeeded
+         * @param {string} operation - The operation type
+         * @param {Error} error - Error object if operation failed
+         */
+        function trackFSRSOperation(success, operation, error = null) {
+            fsrsHealthStatus.totalOperations++;
+            
+            if (success) {
+                fsrsHealthStatus.successfulOperations++;
+                fsrsHealthStatus.consecutiveFailures = 0;
+            } else {
+                fsrsHealthStatus.consecutiveFailures++;
+                fsrsHealthStatus.lastError = error?.message || 'Unknown error';
+                
+                // Update degradation level
+                updateDegradationLevel();
+            }
+            
+            // Log operation for debugging
+            if (window.location.hostname === 'localhost') {
+                console.log(`FSRS operation ${operation}: ${success ? 'success' : 'failure'}`, {
+                    totalOps: fsrsHealthStatus.totalOperations,
+                    successRate: (fsrsHealthStatus.successfulOperations / fsrsHealthStatus.totalOperations * 100).toFixed(1) + '%',
+                    consecutiveFailures: fsrsHealthStatus.consecutiveFailures
+                });
+            }
+        }
+        
+        /**
+         * Start FSRS health monitoring
+         */
+        function startFSRSHealthMonitoring() {
+            console.log('Starting FSRS health monitoring');
+            
+            // Perform initial health check
+            performFSRSHealthCheck();
+            
+            // Set up periodic health checks
+            setInterval(() => {
+                // Only perform health checks if FSRS is being used
+                if (isAuthenticated() && !window.fsrsDisabled) {
+                    performFSRSHealthCheck();
+                }
+            }, FSRS_HEALTH_CHECK_INTERVAL);
+        }
+        
+        /**
+         * Get current FSRS system status for debugging/monitoring
+         * @returns {Object} - Complete system status
+         */
+        function getFSRSSystemStatus() {
+            const retryQueueStatus = getRetryQueueStatus();
+            
+            return {
+                health: fsrsHealthStatus,
+                retryQueue: retryQueueStatus,
+                library: {
+                    initialized: fsrsInitialized,
+                    available: typeof window.tsFsrs !== 'undefined'
+                },
+                database: {
+                    available: !!supabase,
+                    authenticated: isAuthenticated()
+                },
+                flags: {
+                    disabled: !!window.fsrsDisabled,
+                    degraded: !!window.fsrsDegraded
+                }
+            };
         }
         
         // FSRS Attempt Tracking and Grading
@@ -3755,28 +4213,234 @@
         }
 
         // Enhanced error handling for storage operations
-        function handleStorageError(error, operation) {
+        function handleStorageError(error, operation, retryCallback = null) {
             const errorDetails = getDetailedAuthError(error);
             
             console.error(`Storage ${operation} error:`, error);
             
-            // Show non-blocking error notification
-            showErrorToast(
-                `Failed to ${operation}: ${errorDetails.message}`,
-                'error',
-                7000,
-                errorDetails.retryable ? () => {
-                    console.log(`Retrying ${operation} operation`);
-                    // The retry callback would need to be passed from the calling function
-                } : null
-            );
+            // Determine error severity and user impact
+            const errorSeverity = classifyErrorSeverity(error, operation);
+            
+            // Handle based on severity
+            switch (errorSeverity) {
+                case 'silent':
+                    // Log only, no user notification for transient errors
+                    console.warn(`Silent error during ${operation}:`, errorDetails.message);
+                    break;
+                    
+                case 'warning':
+                    // Show warning for non-critical issues
+                    showErrorToast(
+                        `${operation} issue: ${errorDetails.message}`,
+                        'warning',
+                        5000,
+                        errorDetails.retryable && retryCallback ? retryCallback : null
+                    );
+                    break;
+                    
+                case 'error':
+                    // Show error for issues that affect functionality
+                    showErrorToast(
+                        `Failed to ${operation}: ${errorDetails.message}`,
+                        'error',
+                        7000,
+                        errorDetails.retryable && retryCallback ? retryCallback : null
+                    );
+                    break;
+                    
+                case 'critical':
+                    // Show persistent error for critical failures
+                    showPersistentError(
+                        `Critical error during ${operation}`,
+                        errorDetails.message,
+                        retryCallback
+                    );
+                    break;
+            }
             
             // Handle session expiration
             if (errorDetails.type === 'session_expired') {
                 handleSessionExpiration();
             }
             
+            // Handle FSRS system degradation
+            if (operation.includes('FSRS') && errorSeverity === 'critical') {
+                handleFSRSSystemDegradation();
+            }
+            
             return errorDetails;
+        }
+        
+        /**
+         * Classify error severity for appropriate user feedback
+         * @param {Error} error - The error object
+         * @param {string} operation - The operation that failed
+         * @returns {string} - Severity level: 'silent', 'warning', 'error', 'critical'
+         */
+        function classifyErrorSeverity(error, operation) {
+            const errorMessage = error.message || '';
+            
+            // Critical errors that break core functionality
+            if (errorMessage.includes('permission denied') || 
+                errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+                return 'critical';
+            }
+            
+            // Session-related errors
+            if (errorMessage.includes('JWT expired') || errorMessage.includes('session')) {
+                return 'error';
+            }
+            
+            // Network errors (usually transient)
+            if (errorMessage.includes('fetch') || errorMessage.includes('Network request failed')) {
+                return 'warning';
+            }
+            
+            // Rate limiting (temporary)
+            if (errorMessage.includes('rate limit')) {
+                return 'warning';
+            }
+            
+            // FSRS-specific errors
+            if (operation.includes('FSRS')) {
+                // FSRS errors are non-critical to core game functionality
+                return 'warning';
+            }
+            
+            // Default to error for unknown issues
+            return 'error';
+        }
+        
+        /**
+         * Show persistent error notification for critical issues
+         * @param {string} title - Error title
+         * @param {string} message - Error message
+         * @param {Function} retryCallback - Optional retry function
+         */
+        function showPersistentError(title, message, retryCallback = null) {
+            // Remove any existing persistent errors
+            const existingPersistent = document.querySelectorAll('.persistent-error');
+            existingPersistent.forEach(error => error.remove());
+            
+            // Create persistent error element
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'persistent-error';
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: #d73a49;
+                color: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                z-index: 4000;
+                max-width: 400px;
+                text-align: center;
+            `;
+            
+            errorDiv.innerHTML = `
+                <h3 style="margin: 0 0 10px 0; font-size: 16px;">${title}</h3>
+                <p style="margin: 0 0 15px 0; font-size: 14px;">${message}</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    ${retryCallback ? '<button id="persistentRetry" style="padding: 8px 16px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; cursor: pointer;">Retry</button>' : ''}
+                    <button id="persistentDismiss" style="padding: 8px 16px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; cursor: pointer;">Continue Without Saving</button>
+                </div>
+            `;
+            
+            document.body.appendChild(errorDiv);
+            
+            // Add event listeners
+            const retryBtn = errorDiv.querySelector('#persistentRetry');
+            const dismissBtn = errorDiv.querySelector('#persistentDismiss');
+            
+            if (retryBtn && retryCallback) {
+                retryBtn.onclick = () => {
+                    errorDiv.remove();
+                    retryCallback();
+                };
+            }
+            
+            dismissBtn.onclick = () => {
+                errorDiv.remove();
+                // Enable lesson-only mode
+                enableLessonOnlyMode();
+            };
+        }
+        
+        /**
+         * Enable lesson-only mode when FSRS system fails
+         */
+        function enableLessonOnlyMode() {
+            console.log('Enabling lesson-only mode due to FSRS system failure');
+            
+            // Set flag to disable FSRS operations
+            window.fsrsDisabled = true;
+            
+            // Show user notification
+            showErrorToast(
+                'Playing in lesson-only mode. Progress will not be saved.',
+                'warning',
+                8000
+            );
+            
+            // Update UI to reflect lesson-only mode
+            updateUIForLessonOnlyMode();
+        }
+        
+        /**
+         * Update UI for lesson-only mode
+         */
+        function updateUIForLessonOnlyMode() {
+            // Add visual indicator
+            const indicator = document.createElement('div');
+            indicator.id = 'lessonOnlyIndicator';
+            indicator.style.cssText = `
+                position: fixed;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: rgba(255, 193, 7, 0.15);
+                color: #ffc107;
+                padding: 6px 12px;
+                border-radius: 4px;
+                border: 1px solid rgba(255, 193, 7, 0.3);
+                font-size: 12px;
+                font-weight: bold;
+                z-index: 1500;
+                backdrop-filter: blur(4px);
+            `;
+            indicator.textContent = 'Lesson-Only Mode - Progress Not Saved';
+            
+            // Remove if already exists
+            const existing = document.getElementById('lessonOnlyIndicator');
+            if (existing) existing.remove();
+            
+            document.body.appendChild(indicator);
+        }
+        
+        /**
+         * Handle FSRS system degradation
+         */
+        function handleFSRSSystemDegradation() {
+            console.warn('FSRS system experiencing degradation');
+            
+            // Stop retry queue processing to reduce load
+            stopRetryQueueProcessing();
+            
+            // Clear current update queue
+            fsrsUpdateQueue.length = 0;
+            
+            // Set degradation flag
+            window.fsrsDegraded = true;
+            
+            // Show user notification
+            showErrorToast(
+                'Spaced repetition temporarily unavailable. Lessons will continue normally.',
+                'warning',
+                6000
+            );
         }
 
         // Enhanced error handling for authentication operations
@@ -5074,6 +5738,10 @@
                 const fsrsSuccess = initializeFSRS();
                 if (fsrsSuccess) {
                     testFSRSFunctions();
+                    
+                    // Initialize FSRS error handling and monitoring systems
+                    loadRetryQueue();
+                    startFSRSHealthMonitoring();
                 }
                 
                 // Set up authentication modal event listeners first
@@ -5114,6 +5782,12 @@
                     
                     // Test storage functions
                     console.log('Storage system ready:', typeof saveSpellingAttempt === 'function');
+                    
+                    // Test FSRS system status
+                    setTimeout(() => {
+                        const fsrsStatus = getFSRSSystemStatus();
+                        console.log('FSRS system status:', fsrsStatus);
+                    }, 2000);
                 }
             } catch (error) {
                 console.error('Error during page initialization:', error);
