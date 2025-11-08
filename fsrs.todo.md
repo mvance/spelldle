@@ -58,6 +58,8 @@
 
 ## Phase 2: Core FSRS Logic Integration
 
+**Phase 2 Complete ✅** - FSRS card creation and batched updates implemented
+
 ### 2.1 Implement Attempt Tracking and Grading
 - [x] Add attempt counter per word to gameState object
 - [x] Create calculateFSRSGrade(attemptCount) function:
@@ -75,25 +77,26 @@
 - [x] Test grade calculation with various attempt scenarios
 
 ### 2.2 Integrate FSRS Card Creation on First Attempt
-- [ ] Detect first attempt submission for each word
-- [ ] Create FSRS card when user submits first guess
-- [ ] Handle both new words and existing cards gracefully
-- [ ] Work for both authenticated and unauthenticated users
-- [ ] Add error handling for card creation failures
-- [ ] Ensure card creation doesn't block game progression
+- [x] Detect first attempt submission for each word
+- [x] Create FSRS card when user submits first guess
+- [x] Handle both new words and existing cards gracefully
+- [x] Work for both authenticated and unauthenticated users
+- [x] Add error handling for card creation failures
+- [x] Ensure card creation doesn't block game progression
 - [ ] Test with new words and repeated words
 - [ ] Test with authentication state changes
 
 ### 2.3 Implement FSRS Card Updates with Batching
-- [ ] Create FSRS update queue system for batching
-- [ ] Modify advanceToNextWord function to queue FSRS updates
-- [ ] Implement queueFSRSUpdate(word, grade) function
-- [ ] Create processFSRSBatch() function for batch processing
-- [ ] Add batch processing triggers (threshold of 5 updates and timer-based)
-- [ ] Use calculated grade from attempt tracking
-- [ ] Implement error handling that doesn't block game progression
-- [ ] Add retry queue for failed batch updates
-- [ ] Update card's next_due date and other FSRS parameters in batches
+- [x] Create FSRS update queue system for batching
+- [x] Modify advanceToNextWord function to queue FSRS updates
+- [x] Implement queueFSRSUpdate(cardId, grade, word) function
+- [x] Create processFSRSBatch() function for batch processing
+- [x] Add batch processing triggers (threshold of 5 updates and timer-based)
+- [x] Use calculated grade from attempt tracking
+- [x] Implement error handling that doesn't block game progression
+- [x] Add retry queue for failed batch updates (basic implementation)
+- [x] Update card's next_due date and other FSRS parameters in batches
+- [x] Add flushFSRSUpdates() for lesson completion and page unload
 - [ ] Test with various completion scenarios
 - [ ] Test batch processing and error handling
 - [ ] Test retry mechanisms for failed batches

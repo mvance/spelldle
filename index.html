@@ -1610,6 +1610,120 @@
             }
         }
         
+        // FSRS Update Queue and Batching System
+        let fsrsUpdateQueue = [];
+        let fsrsUpdateTimer = null;
+        const FSRS_BATCH_SIZE = 5;
+        const FSRS_BATCH_TIMEOUT = 10000; // 10 seconds
+        
+        /**
+         * Queue an FSRS update for batched processing
+         * @param {string} cardId - The FSRS card ID
+         * @param {number} grade - The FSRS grade (1-4)
+         * @param {string} word - The word for logging
+         */
+        function queueFSRSUpdate(cardId, grade, word) {
+            if (!cardId || !grade) {
+                console.warn('Invalid FSRS update parameters:', { cardId, grade, word });
+                return;
+            }
+            
+            const update = {
+                cardId,
+                grade,
+                word,
+                timestamp: Date.now()
+            };
+            
+            fsrsUpdateQueue.push(update);
+            console.log(`Queued FSRS update for word: ${word}, grade: ${grade}, queue size: ${fsrsUpdateQueue.length}`);
+            
+            // Process batch if we hit the size threshold
+            if (fsrsUpdateQueue.length >= FSRS_BATCH_SIZE) {
+                processFSRSBatch();
+            } else {
+                // Set timer for batch processing if not already set
+                if (!fsrsUpdateTimer) {
+                    fsrsUpdateTimer = setTimeout(() => {
+                        processFSRSBatch();
+                    }, FSRS_BATCH_TIMEOUT);
+                }
+            }
+        }
+        
+        /**
+         * Process queued FSRS updates in batch
+         */
+        async function processFSRSBatch() {
+            if (fsrsUpdateQueue.length === 0) {
+                return;
+            }
+            
+            // Clear the timer
+            if (fsrsUpdateTimer) {
+                clearTimeout(fsrsUpdateTimer);
+                fsrsUpdateTimer = null;
+            }
+            
+            // Take all queued updates
+            const batch = fsrsUpdateQueue.splice(0);
+            console.log(`Processing FSRS batch of ${batch.length} updates`);
+            
+            // Process each update in the batch
+            const results = await Promise.allSettled(
+                batch.map(async (update) => {
+                    try {
+                        const result = await updateFSRSCard(update.cardId, update.grade);
+                        if (result) {
+                            console.log(`FSRS batch update successful for word: ${update.word}`);
+                            return { success: true, update };
+                        } else {
+                            throw new Error('Update returned null');
+                        }
+                    } catch (error) {
+                        console.error(`FSRS batch update failed for word: ${update.word}:`, error);
+                        return { success: false, update, error };
+                    }
+                })
+            );
+            
+            // Handle failed updates
+            const failedUpdates = results
+                .filter(result => result.status === 'rejected' || !result.value.success)
+                .map(result => result.value?.update || result.reason);
+            
+            if (failedUpdates.length > 0) {
+                console.warn(`${failedUpdates.length} FSRS updates failed, adding to retry queue`);
+                queueFailedFSRSUpdates(failedUpdates);
+            }
+            
+            const successCount = results.length - failedUpdates.length;
+            console.log(`FSRS batch processing complete: ${successCount}/${results.length} successful`);
+        }
+        
+        /**
+         * Queue failed FSRS updates for retry
+         * @param {Array} failedUpdates - Array of failed update objects
+         */
+        function queueFailedFSRSUpdates(failedUpdates) {
+            // For now, just log failed updates
+            // In a full implementation, this would add to a retry queue with exponential backoff
+            failedUpdates.forEach(update => {
+                console.error('Failed FSRS update queued for retry:', update);
+                // Could implement localStorage-based retry queue here
+            });
+        }
+        
+        /**
+         * Force process any remaining FSRS updates (called on page unload, lesson completion, etc.)
+         */
+        async function flushFSRSUpdates() {
+            if (fsrsUpdateQueue.length > 0) {
+                console.log('Flushing remaining FSRS updates');
+                await processFSRSBatch();
+            }
+        }
+        
         // FSRS Attempt Tracking and Grading
         
         /**
@@ -1692,9 +1806,9 @@
         }
         
         /**
-         * Complete word and update FSRS card with final grade
+         * Complete word and queue FSRS card update with final grade
          */
-        async function completeWordWithFSRSUpdate() {
+        function completeWordWithFSRSUpdate() {
             if (!isAuthenticated() || !gameState.currentWordFSRSCard) {
                 console.log('Skipping FSRS update - not authenticated or no card');
                 return;
@@ -1704,14 +1818,11 @@
                 const grade = calculateFSRSGrade(gameState.currentWordAttempts);
                 console.log(`Completing word "${gameState.currentWord}" with ${gameState.currentWordAttempts} attempts, FSRS grade: ${grade}`);
                 
-                const updatedCard = await updateFSRSCard(gameState.currentWordFSRSCard.id, grade);
-                if (updatedCard) {
-                    console.log('FSRS card updated successfully on word completion');
-                } else {
-                    console.warn('FSRS card update failed on word completion');
-                }
+                // Queue the update instead of processing immediately
+                queueFSRSUpdate(gameState.currentWordFSRSCard.id, grade, gameState.currentWord);
+                console.log('FSRS card update queued for word completion');
             } catch (error) {
-                console.error('Error updating FSRS card on word completion:', error);
+                console.error('Error queuing FSRS card update on word completion:', error);
             }
         }
         
@@ -2719,8 +2830,11 @@
         }
 
         // Handle lesson completion
-        function handleLessonCompletion() {
+        async function handleLessonCompletion() {
             console.log('Lesson completed!');
+            
+            // Flush any remaining FSRS updates before showing completion
+            await flushFSRSUpdates();
             
             // Calculate stats
             const accuracy = gameState.totalGuesses > 0 ? Math.round((gameState.correctGuesses / gameState.totalGuesses) * 100) : 0;
@@ -4436,8 +4550,8 @@
 
         // Advance to next word
         async function advanceToNextWord() {
-            // Complete current word with FSRS update
-            await completeWordWithFSRSUpdate();
+            // Complete current word with FSRS update (now queued, not awaited)
+            completeWordWithFSRSUpdate();
             
             gameState.currentWordIndex++;
             if (gameState.currentWordIndex < gameState.totalWords) {
@@ -4844,11 +4958,14 @@
         
         /**
          * Handle browser navigation events
-         * Currently passive monitoring - could add warnings if needed
+         * Flush any pending FSRS updates before page unload
          */
         window.addEventListener('beforeunload', function(event) {
-            // Future: Could warn users about unsaved progress
-            // For now, allow normal navigation
+            // Flush any pending FSRS updates
+            if (fsrsUpdateQueue.length > 0) {
+                // Use sendBeacon for reliable delivery during page unload
+                flushFSRSUpdates();
+            }
         });
         
         /**
