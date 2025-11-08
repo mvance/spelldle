@@ -1357,8 +1357,8 @@
          * @returns {Object|null} - Created card object or null on failure
          */
         async function createFSRSCard(word, lessonName = null) {
-            if (!fsrsInitialized || !fsrsLibrary) {
-                console.warn('FSRS not initialized, cannot create card');
+            if (!fsrsInitialized || !fsrsLibrary || window.fsrsDisabled) {
+                console.warn('FSRS not available, cannot create card');
                 return null;
             }
             
@@ -1400,11 +1400,13 @@
                 
                 console.log('FSRS card created successfully:', result);
                 logDatabaseOperation('create_card', true, { word, lessonName });
+                trackFSRSOperation(true, 'create_card');
                 return result;
                 
             } catch (error) {
                 console.error('Failed to create FSRS card:', error);
                 logDatabaseOperation('create_card', false, error);
+                trackFSRSOperation(false, 'create_card', error);
                 
                 // Handle specific error types
                 if (error.message?.includes('duplicate key')) {
@@ -1413,7 +1415,7 @@
                 }
                 
                 // Handle storage error with user feedback
-                handleStorageError(error, 'create FSRS card');
+                handleStorageError(error, 'create FSRS card', () => createFSRSCard(word, lessonName));
                 return null;
             }
         }
