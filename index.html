@@ -1593,16 +1593,32 @@
                 
                 console.log(`Selecting review words with limit: ${reviewLimit}`);
                 
-                // Get due review cards
-                const dueCards = await getDueReviewCards(userId, reviewLimit);
+                // Get due review cards (get more than needed to allow for deduplication)
+                const dueCards = await getDueReviewCards(userId, reviewLimit * 2);
                 
                 if (dueCards.length === 0) {
                     console.log('No due review cards found');
                     return [];
                 }
                 
+                // Deduplicate by word, keeping the most overdue card for each word
+                const uniqueCardsByWord = new Map();
+                dueCards.forEach(card => {
+                    const existingCard = uniqueCardsByWord.get(card.word);
+                    if (!existingCard || new Date(card.next_due) < new Date(existingCard.next_due)) {
+                        uniqueCardsByWord.set(card.word, card);
+                    }
+                });
+                
+                // Convert to array and limit to requested count
+                const uniqueCards = Array.from(uniqueCardsByWord.values())
+                    .sort((a, b) => new Date(a.next_due) - new Date(b.next_due))
+                    .slice(0, reviewLimit);
+                
+                console.log(`Deduplicated ${dueCards.length} cards to ${uniqueCards.length} unique words`);
+                
                 // Convert FSRS cards to word objects for session
-                const reviewWords = dueCards.map(card => {
+                const reviewWords = uniqueCards.map(card => {
                     // Find the original sentence from lesson data
                     let originalSentence = `Review: ${card.word}`; // Fallback
                     
@@ -1630,11 +1646,12 @@
                     };
                 });
                 
-                console.log(`Selected ${reviewWords.length} review words:`, reviewWords.map(w => w.word));
+                console.log(`Selected ${reviewWords.length} unique review words:`, reviewWords.map(w => w.word));
                 logDatabaseOperation('select_reviews', true, { 
                     count: reviewWords.length, 
                     limit: reviewLimit,
-                    words: reviewWords.map(w => w.word)
+                    words: reviewWords.map(w => w.word),
+                    duplicatesRemoved: dueCards.length - uniqueCards.length
                 });
                 
                 return reviewWords;
