@@ -68,6 +68,7 @@ export async function initialize() {
       await loadLessons();
       const lessons = getAvailableLessons();
       console.log(`[APP] ✓ Loaded ${lessons.length} lessons:`, lessons);
+      populateLessonDropdown(lessons);
     } catch (error) {
       console.warn('[APP] Could not load external lessons, using fallback', error);
     }
@@ -75,6 +76,7 @@ export async function initialize() {
     // Step 6: Setup UI
     console.log('[APP] Step 6: Setting up user interface...');
     setupGameUI();
+    showWelcomeScreen();
     console.log('[APP] ✓ UI ready');
 
     console.log('[APP] ================================================');
@@ -128,6 +130,35 @@ function setupGameUI() {
     console.log('[APP] Game UI event listeners attached');
   } catch (error) {
     console.error('[APP] Failed to setup game UI:', error);
+  }
+}
+
+/**
+ * Populate lesson dropdown with available lessons
+ * @param {Array} lessons - Array of lesson names
+ */
+function populateLessonDropdown(lessons) {
+  try {
+    const dropdown = document.getElementById('lessonDropdown');
+    if (!dropdown) {
+      console.warn('[APP] Lesson dropdown not found in DOM');
+      return;
+    }
+
+    // Clear existing options except placeholder
+    dropdown.innerHTML = '<option value="">Select a lesson...</option>';
+
+    // Add lesson options
+    lessons.forEach(lesson => {
+      const option = document.createElement('option');
+      option.value = lesson;
+      option.textContent = lesson;
+      dropdown.appendChild(option);
+    });
+
+    console.log(`[APP] Populated dropdown with ${lessons.length} lessons`);
+  } catch (error) {
+    console.error('[APP] Failed to populate lesson dropdown:', error);
   }
 }
 
