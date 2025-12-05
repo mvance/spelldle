@@ -26,6 +26,13 @@
             integrity="sha384-0esPaJH+F9evp2lsJYN36SW7XkRbaYviuyF+PpnbjDXBC9i1CWGiJyGrXCyiyGqZ" 
             crossorigin="anonymous"></script>
     
+    <!-- FSRS Library CDN -->
+    <script type="module">
+        import * as tsFsrs from 'https://cdn.jsdelivr.net/npm/ts-fsrs@5.2.3/+esm';
+        window.tsFsrs = tsFsrs;
+        console.log('FSRS library loaded via ES modules');
+    </script>
+    
     <!-- Stylesheet -->
     <link rel="stylesheet" href="styles.css">
 </head>

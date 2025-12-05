@@ -9,7 +9,7 @@ import { showErrorToast, logError, handleStorageError } from './error-handler.js
 import { selectReviewWords } from './fsrs-manager.js';
 
 // GitHub Gist CSV URL - must be raw content URL
-const CSV_URL = 'https://gist.githubusercontent.com/thdavis/abc123/raw/spelldle_lessons.csv';
+const CSV_URL = 'https://gist.githubusercontent.com/mvance/1096921b2243372780ccef1d82f1a156/raw/spelldle_lessons.csv';
 
 // Fallback word list (original hardcoded words)
 const FALLBACK_WORD_LIST = [
