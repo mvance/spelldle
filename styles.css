@@ -1,0 +1,1058 @@
+/* CSS Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Color scheme variables */
+:root {
+    --green: #6aaa64;
+    --yellow: #c9b458;
+    --gray: #787c7e;
+    --blue: #2563eb;
+    --dark-bg: #121213;
+    --dark-text: #ffffff;
+    --dark-border: #3a3a3c;
+}
+
+/* Dark theme styling */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Progress counter styling */
+.progress-counter {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+/* Main game container */
+.game-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Base button styling */
+.start-button,
+.submit-button,
+.play-again-button,
+.modal-button {
+    background-color: var(--blue);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.start-button:hover,
+.submit-button:hover,
+.play-again-button:hover,
+.modal-button:hover {
+    background-color: #4a8fc4;
+}
+
+.start-button:active,
+.submit-button:active,
+.play-again-button:active,
+.modal-button:active {
+    background-color: #3a7fb4;
+}
+
+.start-button:disabled,
+.submit-button:disabled,
+.play-again-button:disabled,
+.modal-button:disabled {
+    background-color: #4a4a4a;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Audio controls styling */
+.audio-controls {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.repeat-button {
+    background-color: var(--gray);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.repeat-button:hover {
+    background-color: #686c6f;
+}
+
+.repeat-button:active {
+    background-color: #585c5f;
+}
+
+.repeat-button:disabled {
+    background-color: #4a4a4a;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.audio-fallback {
+    background-color: #444;
+    color: var(--yellow);
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 14px;
+    margin: 10px 0;
+}
+
+/* Initial guess input styling */
+.initial-guess-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.guess-input {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+    border: 2px solid var(--dark-border);
+    padding: 12px 16px;
+    font-size: 16px;
+    border-radius: 6px;
+    min-width: 200px;
+    text-align: center;
+    font-family: inherit;
+}
+
+.guess-input:focus {
+    outline: none;
+    border-color: var(--blue);
+}
+
+
+.validation-message {
+    color: var(--yellow);
+    font-size: 14px;
+    text-align: center;
+    margin-top: 5px;
+}
+
+/* Game completion styling */
+.game-complete-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.game-complete-message {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--blue);
+}
+
+
+/* Clue phase feedback styling */
+.clue-phase-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin: 20px 0;
+    width: 100%;
+}
+
+.feedback-rows-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.feedback-row {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-start;
+    margin: 5px 0;
+}
+
+.letter-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border: 3px solid #d3d6da;
+    border-radius: 3px;
+    font-weight: bold;
+    font-size: 18px;
+    box-sizing: border-box;
+    vertical-align: top;
+}
+
+.letter-box.green {
+    background-color: var(--green);
+    color: white;
+}
+
+.letter-box.yellow {
+    background-color: var(--yellow);
+    color: white;
+}
+
+.letter-box.gray {
+    background-color: var(--gray);
+    color: white;
+}
+
+.letter-box.extraneous {
+    border: 3px dotted #d3d6da;
+}
+
+.letter-box.missing {
+    background-color: transparent;
+    border: 3px solid #d3d6da;
+    color: var(--dark-text);
+}
+
+/* Clue phase input styling */
+.input-row-clue {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.letter-input {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border: 3px solid #d3d6da;
+    border-radius: 3px;
+    font-weight: bold;
+    font-size: 18px;
+    box-sizing: border-box;
+    text-align: center;
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+    font-family: inherit;
+}
+
+.letter-input:focus {
+    outline: none;
+    border-color: var(--blue);
+}
+
+.clue-submit-button {
+    background-color: var(--blue);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 10px;
+}
+
+.clue-submit-button:hover {
+    background-color: #4a8fc4;
+}
+
+.clue-submit-button:disabled {
+    background-color: #4a4a4a;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Reinforcement phase styling */
+.reinforcement-input-row {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.reinforcement-submit-button {
+    background-color: var(--green);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 10px;
+}
+
+.reinforcement-submit-button:hover {
+    background-color: #5a9a54;
+}
+
+.reinforcement-submit-button:active {
+    background-color: #4a8a44;
+}
+
+.reinforcement-submit-button:disabled {
+    background-color: #4a4a4a;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .game-container {
+        max-width: 100%;
+        padding: 15px;
+    }
+    
+    .progress-counter {
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .letter-box, .letter-input {
+        width: 45px;
+        height: 45px;
+        font-size: 16px;
+    }
+    
+    .feedback-row, .input-row-clue {
+        gap: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+    
+    .game-container {
+        padding: 10px;
+    }
+    
+    .letter-box, .letter-input {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
+    
+    .feedback-row, .input-row-clue {
+        gap: 2px;
+    }
+    
+    .guess-input {
+        min-width: 150px;
+        font-size: 14px;
+    }
+    
+    .submit-button, .clue-submit-button {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+}
+
+/* Welcome screen styling */
+.welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    margin: 20px 0;
+}
+
+.welcome-screen h1 {
+    font-size: 48px;
+    font-weight: bold;
+    color: var(--blue);
+    margin: 0;
+}
+
+.how-to-play {
+    background-color: #2a2a2a;
+    border: 1px solid var(--dark-border);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 600px;
+    text-align: left;
+}
+
+.how-to-play h2 {
+    color: var(--blue);
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+.how-to-play ul {
+    margin: 0;
+    padding-left: 20px;
+    line-height: 1.6;
+    list-style: none;
+}
+
+.how-to-play li {
+    margin-bottom: 12px;
+    position: relative;
+    padding-left: 8px;
+}
+
+.how-to-play li::before {
+    content: "•";
+    position: absolute;
+    left: -12px;
+    color: var(--blue);
+    font-weight: bold;
+}
+
+.clue-examples {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.clue-example {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 15px;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.clue-color-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-right: 6px;
+    display: inline-block;
+}
+
+.clue-color-box.green {
+    background-color: var(--green);
+}
+
+.clue-color-box.yellow {
+    background-color: var(--yellow);
+}
+
+.clue-color-box.gray {
+    background-color: var(--gray);
+}
+
+.clue-color-box.extraneous {
+    background-color: transparent;
+    border: 2px dotted var(--gray);
+}
+
+.lesson-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.lesson-selector label {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.lesson-dropdown {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+    border: 2px solid var(--dark-border);
+    padding: 12px 16px;
+    font-size: 16px;
+    border-radius: 6px;
+    min-width: 250px;
+    font-family: inherit;
+}
+
+.lesson-dropdown:focus {
+    outline: none;
+    border-color: var(--blue);
+}
+
+/* Modal styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+    border: 2px solid var(--dark-border);
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+}
+
+.modal-content h2 {
+    color: var(--blue);
+    margin-bottom: 20px;
+}
+
+.lesson-stats {
+    margin: 20px 0;
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+.lesson-navigation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+
+.error-details {
+    background-color: #2a2a2a;
+    border: 1px solid var(--dark-border);
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+    font-family: monospace;
+    font-size: 12px;
+    text-align: left;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Authentication Modal Styling */
+.auth-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(2px);
+}
+
+.auth-modal-content {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+    border: 2px solid var(--dark-border);
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.auth-phase {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.auth-modal-content h2 {
+    color: var(--blue);
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    text-align: center;
+}
+
+.auth-description {
+    color: #b0b0b0;
+    font-size: 16px;
+    line-height: 1.5;
+    text-align: center;
+    margin: 0;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.auth-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.auth-input-group label {
+    color: var(--dark-text);
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.auth-input {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+    border: 2px solid var(--dark-border);
+    padding: 12px 16px;
+    font-size: 16px;
+    border-radius: 6px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: var(--blue);
+}
+
+.auth-input::placeholder {
+    color: #666;
+}
+
+.auth-error {
+    background-color: #d73a49;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: center;
+    margin: 0;
+}
+
+.auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-button {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    border: 2px solid transparent;
+}
+
+.auth-button.primary {
+    background-color: var(--blue);
+    color: white;
+    border-color: var(--blue);
+}
+
+.auth-button.primary:hover {
+    background-color: #4a8fc4;
+    border-color: #4a8fc4;
+}
+
+.auth-button.primary:active {
+    background-color: #3a7fb4;
+    border-color: #3a7fb4;
+}
+
+.auth-button.primary:disabled {
+    background-color: #4a4a4a;
+    border-color: #4a4a4a;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.auth-button.secondary {
+    background-color: transparent;
+    color: var(--dark-text);
+    border-color: var(--dark-border);
+}
+
+.auth-button.secondary:hover {
+    background-color: var(--dark-border);
+    border-color: #555;
+}
+
+.auth-button.secondary:active {
+    background-color: #444;
+    border-color: #666;
+}
+
+.auth-button.secondary:disabled {
+    color: #666;
+    border-color: #333;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#emailDisplay {
+    color: var(--blue);
+    font-weight: bold;
+}
+
+/* Error Toast Styling */
+.error-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #d73a49;
+    color: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 3000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    word-wrap: break-word;
+    animation: slideInTop 0.3s ease-out;
+}
+
+.error-toast.success {
+    background-color: var(--green);
+}
+
+.error-toast.warning {
+    background-color: #f39c12;
+    color: #000;
+}
+
+.error-toast.info {
+    background-color: var(--blue);
+}
+
+.error-toast .toast-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.error-toast .toast-close:hover {
+    opacity: 0.7;
+}
+
+.error-toast .toast-retry {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: inherit;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 8px;
+    display: inline-block;
+}
+
+.error-toast .toast-retry:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes slideInTop {
+    from {
+        transform: translateX(-50%) translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutTop {
+    from {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-50%) translateY(-100%);
+        opacity: 0;
+    }
+}
+
+/* Responsive design for authentication modal */
+@media (max-width: 768px) {
+    .auth-modal-content {
+        padding: 30px 25px;
+        width: 95%;
+    }
+    
+    .auth-modal-content h2 {
+        font-size: 22px;
+    }
+    
+    .auth-description {
+        font-size: 15px;
+    }
+    
+    .auth-input {
+        font-size: 15px;
+        padding: 11px 14px;
+    }
+    
+    .auth-button {
+        font-size: 15px;
+        padding: 11px 20px;
+    }
+
+    .error-toast {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        transform: translateX(0);
+        max-width: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-modal-content {
+        padding: 25px 20px;
+        width: 98%;
+    }
+    
+    .auth-modal-content h2 {
+        font-size: 20px;
+    }
+    
+    .auth-description {
+        font-size: 14px;
+    }
+    
+    .auth-input {
+        font-size: 14px;
+        padding: 10px 12px;
+    }
+    
+    .auth-button {
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+}
+
+@media (max-width: 320px) {
+    .letter-box, .letter-input {
+        width: 35px;
+        height: 35px;
+        font-size: 12px;
+    }
+    
+    .guess-input {
+        min-width: 120px;
+    }
+    
+    .welcome-screen h1 {
+        font-size: 36px;
+    }
+    
+    .lesson-dropdown {
+        min-width: 200px;
+        font-size: 14px;
+    }
+    
+    .modal-content {
+        padding: 20px;
+    }
+    
+    .auth-modal-content {
+        padding: 20px 15px;
+    }
+    
+    .auth-modal-content h2 {
+        font-size: 18px;
+    }
+    
+    .auth-input {
+        font-size: 13px;
+        padding: 9px 10px;
+    }
+    
+    .auth-button {
+        font-size: 13px;
+        padding: 9px 14px;
+    }
+}
+
+/* Header Controls Styling */
+.header-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1500;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.auth-status {
+    font-size: 12px;
+    color: #b0b0b0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ✅ Finalized high-contrast buttons for dark background */
+#signInLink,
+#logoutLink {
+    text-decoration: none !important;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 6px;
+    padding: 8px 16px;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+/* Sign In: vivid blue background, white text */
+a#signInLink,
+a#signInLink:link,
+a#signInLink:visited,
+a#signInLink:hover,
+a#signInLink:active {
+    color: #ffffff !important;
+    background-color: #2563eb !important;
+    border: 2px solid #2563eb !important;
+    text-decoration: none !important;
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Optional: slightly darker hover tone */
+a#signInLink:hover {
+    background-color: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+}
+
+/* Sign Out: accessible red */
+#logoutLink {
+    color: #ffffff !important;
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+#logoutLink:hover {
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
+}
+
+/* Loading state styling */
+.lesson-selector.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.lesson-selector.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--blue);
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.auth-modal-overlay.auth-loading {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Responsive header controls */
+@media (max-width: 768px) {
+    .header-controls {
+        top: 10px;
+        right: 10px;
+        gap: 10px;
+    }
+    
+    .logout-link, .sign-in-link {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    
+    .auth-status {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-controls {
+        position: relative;
+        top: 0;
+        right: 0;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+}
