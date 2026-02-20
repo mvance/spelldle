@@ -6,13 +6,13 @@
  */
 
 // Import all modules
-import { evaluateGuess, getFeedback, validateGuessInput } from './game-engine.js';
+import { evaluateGuess, getFeedback, validateGuessInput, calculateFSRSGrade } from './game-engine.js';
 import { getFromLocalStorage, setInLocalStorage } from './storage-manager.js';
 import { getSupabaseClient } from './supabase-client.js';
-import { initializeAuthFlow, isAuthenticated, setupAuthListeners } from './auth-manager.js';
+import { initializeAuthFlow, isAuthenticated, getCurrentUser, setupAuthListeners } from './auth-manager.js';
 import { initializeSpeechSynthesis, speakWord, repeatWord } from './tts-handler.js';
-import { loadLessons, getAvailableLessons, buildLessonSession } from './lesson-manager.js';
-import { initializeFSRS } from './fsrs-manager.js';
+import { loadLessons, getAvailableLessons, buildLessonSession, buildReviewSession } from './lesson-manager.js';
+import { initializeFSRS, createFSRSCard, updateFSRSCard, getFSRSCardByWord } from './fsrs-manager.js';
 import { showWelcomeScreen, showGameScreen, updateProgressCounter } from './ui-renderer.js';
 import { showErrorToast } from './error-handler.js';
 
@@ -23,6 +23,7 @@ let gameState = {
   currentWordIndex: 0,
   currentWord: null,
   currentSentence: null,
+  attemptCount: 0,
   gameStarted: false,
   sessionStartTime: null
 };
@@ -175,11 +176,14 @@ async function startSelectedLesson() {
 
     console.log(`[APP] Starting lesson: ${dropdown.value}`);
 
-    // Build lesson session
-    const session = await buildLessonSession(dropdown.value);
+    // Build session — include due review words when authenticated
+    const session = isAuthenticated()
+      ? await buildReviewSession(getCurrentUser().id, dropdown.value)
+      : await buildLessonSession(dropdown.value);
     gameState.currentLesson = dropdown.value;
     gameState.currentWords = session.words;
     gameState.currentWordIndex = 0;
+    gameState.attemptCount = 0;
     gameState.gameStarted = true;
     gameState.sessionStartTime = Date.now();
 
@@ -209,6 +213,7 @@ function loadNextWord() {
     const wordData = gameState.currentWords[gameState.currentWordIndex];
     gameState.currentWord = wordData.word;
     gameState.currentSentence = wordData.sentence;
+    gameState.attemptCount = 0;
 
     console.log(`[APP] Loaded word: "${gameState.currentWord}"`);
 
@@ -255,11 +260,17 @@ async function submitGuess() {
 
     console.log(`[APP] Submitted guess: "${guess}" for word: "${gameState.currentWord}"`);
 
+    gameState.attemptCount++;
+
     // Evaluate guess
     const isCorrect = evaluateGuess(guess, gameState.currentWord);
 
     if (isCorrect) {
-      // Correct!
+      // Record FSRS grade non-blocking (game continues regardless of outcome)
+      const grade = calculateFSRSGrade(gameState.attemptCount);
+      recordFSRSAttempt(gameState.currentWord, gameState.currentLesson, grade)
+        .catch(err => console.warn('[APP] FSRS record failed silently:', err));
+
       showErrorToast('Correct!', 'success', 1000);
       gameState.currentWordIndex++;
       setTimeout(loadNextWord, 500);
@@ -303,6 +314,30 @@ function playAgain() {
     console.log('[APP] Game reset');
   } catch (error) {
     console.error('[APP] Failed to play again:', error);
+  }
+}
+
+/**
+ * Record FSRS attempt for a completed word
+ * Creates the card on first attempt, then updates it with the computed grade.
+ * Runs silently — failures do not interrupt gameplay.
+ * @param {string} word - The word that was practiced
+ * @param {string} lessonName - The lesson the word belongs to
+ * @param {number} grade - FSRS grade (1=Again, 2=Hard, 3=Good, 4=Easy)
+ */
+async function recordFSRSAttempt(word, lessonName, grade) {
+  if (!isAuthenticated()) return;
+
+  try {
+    let card = await getFSRSCardByWord(word, lessonName);
+    if (!card) {
+      card = await createFSRSCard(word, lessonName);
+    }
+    if (card) {
+      await updateFSRSCard(card.id, grade);
+    }
+  } catch (error) {
+    console.error('[APP] Failed to record FSRS attempt:', error);
   }
 }
 

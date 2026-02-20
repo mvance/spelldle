@@ -198,6 +198,11 @@ export async function buildReviewSession(userId, lessonName, maxReviews = 5) {
     if (userId) {
       try {
         reviewWords = await selectReviewWords(userId, maxReviews);
+        // Look up real example sentences from loaded lesson data
+        reviewWords = reviewWords.map(rw => {
+          const entry = lessonsData.find(row => row.word === rw.word);
+          return { ...rw, sentence: entry ? entry.sentence : rw.sentence };
+        });
         console.log(`[LESSON] Selected ${reviewWords.length} review words`);
       } catch (error) {
         console.warn('[LESSON] Could not load review words:', error.message);

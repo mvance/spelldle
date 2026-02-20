@@ -11,6 +11,7 @@ import { showErrorToast, logError, logDatabaseOperation } from './error-handler.
 
 // FSRS Configuration
 const FSRS_CONFIG = {
+  request_retention: 0.9,
   maximum_interval: 36500,
   enable_fuzz: true,
   enable_short_term: false
@@ -77,17 +78,24 @@ export async function createFSRSCard(word, lessonName = null) {
       throw new Error('Supabase not available');
     }
 
+    const { createEmptyCard } = window.tsFsrs;
+    const emptyCard = createEmptyCard();
+
     const { data, error } = await supabase
       .from('fsrs_cards')
       .insert({
         user_id: user.id,
         word: word,
         lesson_name: lessonName,
-        difficulty: 0.5,
-        stability: 0,
+        difficulty: emptyCard.difficulty,
+        stability: emptyCard.stability,
+        elapsed_days: emptyCard.elapsed_days,
+        scheduled_days: emptyCard.scheduled_days,
+        review_count: emptyCard.reps,
+        lapses: emptyCard.lapses,
+        state: emptyCard.state,
         last_review: null,
-        next_due: new Date().toISOString(),
-        review_count: 0
+        next_due: emptyCard.due.toISOString()
       })
       .select()
       .single();
@@ -125,14 +133,46 @@ export async function updateFSRSCard(cardId, grade) {
       throw new Error('Supabase not available');
     }
 
+    // Fetch current card state from DB
+    const { data: existingCard, error: fetchError } = await supabase
+      .from('fsrs_cards')
+      .select('*')
+      .eq('id', cardId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Reconstruct ts-fsrs Card object from stored fields
+    const card = {
+      due: new Date(existingCard.next_due),
+      stability: existingCard.stability,
+      difficulty: existingCard.difficulty,
+      elapsed_days: existingCard.elapsed_days,
+      scheduled_days: existingCard.scheduled_days,
+      reps: existingCard.review_count,
+      lapses: existingCard.lapses,
+      state: existingCard.state,
+      last_review: existingCard.last_review ? new Date(existingCard.last_review) : undefined
+    };
+
+    // Run FSRS algorithm to compute next schedule
     const now = new Date();
+    const schedulingResult = fsrsLibrary.repeat(card, now);
+    const scheduledCard = schedulingResult[grade].card;
 
     const { data, error } = await supabase
       .from('fsrs_cards')
       .update({
+        stability: scheduledCard.stability,
+        difficulty: scheduledCard.difficulty,
+        elapsed_days: scheduledCard.elapsed_days,
+        scheduled_days: scheduledCard.scheduled_days,
+        review_count: scheduledCard.reps,
+        lapses: scheduledCard.lapses,
+        state: scheduledCard.state,
         last_review: now.toISOString(),
-        next_due: now.toISOString(),
-        review_count: grade,
+        next_due: scheduledCard.due.toISOString(),
         updated_at: now.toISOString()
       })
       .eq('id', cardId)
